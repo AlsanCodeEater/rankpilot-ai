@@ -68,13 +68,12 @@ export default function Settings() {
         )}
 
         <Layout>
-          <Layout.Section>
+          <Layout.AnnotatedSection
+            title="AI Configuration"
+            description="Manage your AI provider settings and API keys."
+          >
             <Card>
               <BlockStack gap="400">
-                <Text as="h2" variant="headingMd">
-                  AI Configuration
-                </Text>
-                
                 <Banner tone="info" title="Configuration is managed by the server">
                   <p>
                     For security reasons, API keys are stored securely on the server and cannot be viewed or modified from the frontend dashboard.
@@ -113,14 +112,14 @@ export default function Settings() {
                 </Box>
               </BlockStack>
             </Card>
-          </Layout.Section>
+          </Layout.AnnotatedSection>
 
-          <Layout.Section variant="oneThird">
+          <Layout.AnnotatedSection
+            title="Shopify Permissions"
+            description="Review the access scopes RankPilot AI uses on your store."
+          >
             <Card>
               <BlockStack gap="400">
-                <Text as="h2" variant="headingMd">
-                  Shopify Permissions
-                </Text>
                 <Text as="p" variant="bodyMd" tone="subdued">
                   RankPilot AI currently uses the following access scopes on your store:
                 </Text>
@@ -130,53 +129,52 @@ export default function Settings() {
                 </List>
               </BlockStack>
             </Card>
+          </Layout.AnnotatedSection>
 
-            <Box paddingBlockStart="400">
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    Web Pixel Tracking
-                  </Text>
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Track product views, searches, and add-to-carts to measure the ROI of AI suggestions. 
-                    <strong> No personal customer data is collected.</strong>
-                  </Text>
+          <Layout.AnnotatedSection
+            title="Web Pixel Tracking"
+            description="Track product views, searches, and add-to-carts to measure the ROI of AI suggestions."
+          >
+            <Card>
+              <BlockStack gap="400">
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  <strong>No personal customer data is collected.</strong>
+                </Text>
 
-                  <Box background="bg-surface-secondary" padding="400" borderRadius="200">
-                    <BlockStack gap="200">
+                <Box background="bg-surface-secondary" padding="400" borderRadius="200">
+                  <BlockStack gap="200">
+                    <InlineStack align="space-between">
+                      <Text as="span" variant="bodyMd" tone="subdued">Status</Text>
+                      <Badge tone={pixelStatus === "active" ? "success" : "warning"}>
+                        {pixelStatus === "active" ? "Active" : "Inactive"}
+                      </Badge>
+                    </InlineStack>
+                    {pixelEndpoint && (
                       <InlineStack align="space-between">
-                        <Text as="span" variant="bodyMd" tone="subdued">Status</Text>
-                        <Badge tone={pixelStatus === "active" ? "success" : "warning"}>
-                          {pixelStatus === "active" ? "Active" : "Inactive"}
-                        </Badge>
+                        <Text as="span" variant="bodyMd" tone="subdued">Endpoint</Text>
+                        <Text as="span" variant="bodyMd">{pixelEndpoint}</Text>
                       </InlineStack>
-                      {pixelEndpoint && (
-                        <InlineStack align="space-between">
-                          <Text as="span" variant="bodyMd" tone="subdued">Endpoint</Text>
-                          <Text as="span" variant="bodyMd">{pixelEndpoint}</Text>
-                        </InlineStack>
-                      )}
-                    </BlockStack>
-                  </Box>
+                    )}
+                  </BlockStack>
+                </Box>
 
-                  {pixelStatus !== "active" && (
-                    <Box paddingBlockStart="200">
-                      <Button 
-                        onClick={() => pixelFetcher.submit(null, { method: "POST", action: "/api/pixel/activate" })} 
-                        loading={pixelFetcher.state !== "idle"} 
-                        variant="primary"
-                      >
-                        Activate Pixel
-                      </Button>
-                    </Box>
-                  )}
-                  {pixelFetcher.data?.error && (
-                    <Text as="p" tone="critical">{pixelFetcher.data.error}</Text>
-                  )}
-                </BlockStack>
-              </Card>
-            </Box>
-          </Layout.Section>
+                {pixelStatus !== "active" && (
+                  <Box paddingBlockStart="200">
+                    <Button 
+                      onClick={() => pixelFetcher.submit(null, { method: "POST", action: "/api/pixel/activate" })} 
+                      loading={pixelFetcher.state !== "idle"} 
+                      variant="primary"
+                    >
+                      Activate Pixel
+                    </Button>
+                  </Box>
+                )}
+                {pixelFetcher.data?.error && (
+                  <Text as="p" tone="critical">{pixelFetcher.data.error}</Text>
+                )}
+              </BlockStack>
+            </Card>
+          </Layout.AnnotatedSection>
         </Layout>
       </BlockStack>
     </Page>
