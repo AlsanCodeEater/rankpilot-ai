@@ -1,13 +1,12 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "741fce976eb36e0ff8c5e62c0230a15c"
-application_url = "https://its-quarters-control-royal.trycloudflare.com"
-embedded = true
 name = "RankPilot AI"
+application_url = "https://rankpilotai.alsanlab.cloud"
+embedded = true
 
-[access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products,write_products,read_inventory,read_locations,write_pixels,read_customer_events"
+[build]
+automatically_update_urls_on_dev = false
 
 [webhooks]
 api_version = "2026-07"
@@ -18,15 +17,17 @@ api_version = "2026-07"
   shop_deletion_url = "/webhooks/shop/redact"
 
   [[webhooks.subscriptions]]
-  uri = "/webhooks/app/uninstalled"
-  topics = [ "app/uninstalled" ]
-
-  [[webhooks.subscriptions]]
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
 
-[auth]
-redirect_urls = [ "https://its-quarters-control-royal.trycloudflare.com/api/auth" ]
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
 
-[build]
-automatically_update_urls_on_dev = true
+[access_scopes]
+scopes = "read_inventory,read_locations,read_products,write_products,write_pixels,read_customer_events"
+
+[auth]
+redirect_urls = [
+  "https://rankpilotai.alsanlab.cloud/api/auth"
+]
