@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.DS_Store
+.env
+.git
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+build/
+public/build/
+dev.sqlite
+dev.sqlite-journal
+*.log

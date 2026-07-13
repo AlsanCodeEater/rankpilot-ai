@@ -1,0 +1,231 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model Shop {
+  id          String   @id @default(uuid())
+  shopDomain  String   @unique
+  name        String?
+  email       String?
+  plan        String?
+  currency    String?
+  timezone    String?
+  lastSyncAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+}
+
+model ProductSnapshot {
+  id                String   @id @default(cuid())
+  shop              String
+  shopifyProductId  String
+  title             String
+  handle            String?
+  description       String?
+  bodyHtml          String?
+  vendor            String?
+  productType       String?
+  tags              String?
+  status            String?
+  totalInventory    Int?
+  variantsCount     Int      @default(0)
+  seoTitle          String?
+  seoDescription    String?
+  imageUrl          String?
+  aiScore           Int?
+  issueCount        Int      @default(0)
+  lastSyncAt        DateTime?
+  lastScannedAt     DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  suggestions       AiSuggestion[]
+
+  @@unique([shop, shopifyProductId])
+  @@index([shop])
+  @@index([aiScore])
+}
+
+model CollectionSnapshot {
+  id                    String   @id @default(cuid())
+  shop                  String
+  shopifyCollectionId   String
+  title                 String
+  handle                String?
+  bodyHtml              String?
+  sortOrder             String?
+  productsCount         Int      @default(0)
+  imageUrl              String?
+  lastSyncAt            DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([shop, shopifyCollectionId])
+  @@index([shop])
+}
+
+model AiSuggestion {
+  id                String   @id @default(cuid())
+  shop              String
+  productSnapshotId String
+  shopifyProductId  String
+  suggestionType    String
+  issue             String
+  reason            String
+  oldValue          String?
+  newValue          String?
+  confidenceScore   Float
+  status            String   @default("pending")
+  appliedAt         DateTime?
+  errorMessage      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  productSnapshot   ProductSnapshot @relation(fields: [productSnapshotId], references: [id], onDelete: Cascade)
+
+  @@index([shop])
+  @@index([status])
+  @@index([suggestionType])
+}
+
+model ShopSettings {
+  id            String   @id @default(uuid())
+  shopDomain    String   @unique
+  aiProvider    String   @default("openai") // "openai" | "claude"
+  aiApiKey      String?
+  aiModel       String   @default("gpt-4o-mini")
+  syncFrequency String   @default("manual") // "manual" | "6h" | "12h" | "24h"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ShopPlan {
+  id                    String    @id @default(cuid())
+  shop                  String    @unique
+  planName              String    @default("FREE")
+  billingStatus         String    @default("free")
+  shopifySubscriptionId String?
+  trialEndsAt           DateTime?
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  usageRecords          UsageRecord[]
+}
+
+model UsageRecord {
+  id        String   @id @default(cuid())
+  shop      String
+  type      String
+  count     Int      @default(1)
+  periodKey String
+  createdAt DateTime @default(now())
+
+  shopPlan  ShopPlan @relation(fields: [shop], references: [shop], onDelete: Cascade)
+
+  @@index([shop])
+  @@index([type])
+  @@index([periodKey])
+  @@unique([shop, type, periodKey])
+}
+
+model StoreEvent {
+  id          String   @id @default(cuid())
+  shop        String
+  eventName   String
+  productId   String?
+  collectionId String?
+  searchQuery String?
+  eventDate   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([shop])
+  @@index([eventName])
+  @@index([productId])
+  @@index([eventDate])
+}
+
+model BetaMerchant {
+  id                    String   @id @default(cuid())
+  shop                  String   @unique
+  email                 String?
+  storeName             String?
+  niche                 String?
+  productCountEstimate  Int?
+  status                String   @default("invited")
+  notes                 String?
+  betaEndsAt            DateTime?
+  installedAt           DateTime?
+  firstAuditAt          DateTime?
+  firstSuggestionAppliedAt DateTime?
+  feedbackCollectedAt   DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([shop])
+  @@index([status])
+}
+
+model ProductAnalyticsDaily {
+  id            String   @id @default(cuid())
+  shop          String
+  productId     String
+  dateKey       String
+  productViews  Int      @default(0)
+  addToCarts    Int      @default(0)
+  searchHits    Int      @default(0)
+  collectionHits Int     @default(0)
+  checkoutStarts Int     @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([shop, productId, dateKey])
+  @@index([shop])
+  @@index([productId])
+  @@index([dateKey])
+}
+
+model PixelInstall {
+  id          String   @id @default(cuid())
+  shop        String   @unique
+  webPixelId  String?
+  endpoint    String
+  secretHash  String
+  status      String   @default("inactive")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
