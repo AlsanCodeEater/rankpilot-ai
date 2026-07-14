@@ -81,7 +81,7 @@ function ProductRow({ product, index }: { product: any; index: number }) {
           <Button onClick={handleAudit} loading={isAuditing} size="micro">
             Audit
           </Button>
-          <Button onClick={() => navigate(`/app/suggestions?productSnapshotId=${product.id}`)} size="micro">
+          <Button onClick={() => navigate(`/app/suggestions?productId=${product.id}`)} size="micro">
             Suggestions
           </Button>
         </InlineStack>

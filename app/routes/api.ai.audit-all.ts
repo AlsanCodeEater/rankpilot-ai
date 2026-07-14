@@ -57,13 +57,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // 2. The AI should audit synced Shopify products and return JSON
       const result = await auditProductWithAI(product);
 
-      await prisma.productSnapshot.update({
-        where: { id: product.id },
-        data: {
-          aiScore: result.score,
-        },
-      });
-
       await prisma.aiSuggestion.deleteMany({
         where: {
           productSnapshotId: product.id,
@@ -71,6 +64,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         },
       });
 
+      let createdSuggestions = 0;
       // 3. Save suggestions in AiSuggestion table
       for (const suggestion of result.suggestions) {
         await prisma.aiSuggestion.create({
@@ -88,7 +82,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           },
         });
         totalSuggestions++;
+        createdSuggestions++;
       }
+
+      const pendingCount = await prisma.aiSuggestion.count({
+        where: { productSnapshotId: product.id, status: "pending" }
+      });
+
+      await prisma.productSnapshot.update({
+        where: { id: product.id },
+        data: {
+          aiScore: result.score,
+          issueCount: pendingCount,
+        },
+      });
+
+      console.log({
+        productId: product.id,
+        shop: session.shop,
+        aiScore: result.score,
+        issueCount: pendingCount,
+        suggestionsReturned: result.suggestions?.length || 0,
+        suggestionsCreated: createdSuggestions
+      });
       
       totalAnalyzed++;
     } catch (error) {

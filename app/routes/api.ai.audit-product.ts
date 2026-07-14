@@ -42,15 +42,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const result = await auditProductWithAI(product);
 
-    // Update product score
-    await prisma.productSnapshot.update({
-      where: { id: product.id },
-      data: {
-        aiScore: result.score,
-        issueCount: result.issues?.length || 0,
-      },
-    });
-
     // Clear old pending suggestions
     await prisma.aiSuggestion.deleteMany({
       where: {
@@ -59,6 +50,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
+    let createdSuggestions = 0;
     // Save new suggestions
     for (const suggestion of result.suggestions) {
       await prisma.aiSuggestion.create({
@@ -75,7 +67,31 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           status: "pending",
         },
       });
+      createdSuggestions++;
     }
+
+    // Accurately count pending suggestions for this product
+    const pendingCount = await prisma.aiSuggestion.count({
+      where: { productSnapshotId: product.id, status: "pending" }
+    });
+
+    // Update product score with the true issue count
+    await prisma.productSnapshot.update({
+      where: { id: product.id },
+      data: {
+        aiScore: result.score,
+        issueCount: pendingCount,
+      },
+    });
+
+    console.log({
+      productId: product.id,
+      shop: session.shop,
+      aiScore: result.score,
+      issueCount: pendingCount,
+      suggestionsReturned: result.suggestions?.length || 0,
+      suggestionsCreated: createdSuggestions
+    });
 
     // Increment usage by 1 after successful audit
     await incrementUsage(session.shop, "ai_audit", 1);

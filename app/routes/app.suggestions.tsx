@@ -24,11 +24,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const url = new URL(request.url);
   const productSnapshotId = url.searchParams.get("productSnapshotId");
+  const productId = url.searchParams.get("productId");
 
   const whereClause: any = { shop: session.shop };
   if (productSnapshotId) {
     whereClause.productSnapshotId = productSnapshotId;
+  } else if (productId) {
+    whereClause.OR = [
+      { productSnapshotId: productId },
+      { shopifyProductId: productId }
+    ];
   }
+  
+  console.log("Suggestions loader whereClause:", JSON.stringify(whereClause));
 
   const suggestions = await prisma.aiSuggestion.findMany({
     where: whereClause,
@@ -49,7 +57,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     failed: suggestions.filter((s) => s.status === "failed").length,
   };
 
-  return json({ suggestions, counts, productSnapshotId });
+  return json({ suggestions, counts, productSnapshotId, productId, shop: session.shop });
 };
 
 function getTypeBadge(type: string) {
@@ -93,7 +101,7 @@ function getStatusBadge(status: string) {
 }
 
 export default function Suggestions() {
-  const { suggestions, counts, productSnapshotId } = useLoaderData<typeof loader>();
+  const { suggestions, counts, productSnapshotId, productId, shop } = useLoaderData<typeof loader>();
   
   const statusTabs = [
     { id: "all", content: `All (${counts.all})`, status: "all" },
@@ -147,6 +155,15 @@ export default function Suggestions() {
   return (
     <Page>
       <TitleBar title="AI Suggestions" />
+      
+      {suggestions.length === 0 && (
+        <Box paddingBlockEnd="200">
+          <Text as="p" tone="subdued" variant="bodySm">
+            Debug: loaded 0 suggestions for shop {shop}
+          </Text>
+        </Box>
+      )}
+
       <BlockStack gap="500">
         <Card padding="0">
           <Tabs tabs={statusTabs} selected={selectedStatusTab} onSelect={handleStatusTabChange} />

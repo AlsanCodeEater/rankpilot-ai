@@ -105,6 +105,19 @@ export async function auditProductWithAI(product: any): Promise<AiAuditResponse>
     
     // Validate with Zod
     const validatedData = AiAuditResponseSchema.parse(parsedData);
+
+    // Safety fallback: if AI found issues but generated 0 suggestions, map issues to basic suggestions
+    if (validatedData.issues?.length > 0 && (!validatedData.suggestions || validatedData.suggestions.length === 0)) {
+      validatedData.suggestions = validatedData.issues.map((issue) => ({
+        type: "improve_seo_description", // closest generic fallback category
+        issue: issue,
+        reason: "AI detected an issue but did not provide a specific recommended fix.",
+        oldValue: null,
+        newValue: null,
+        confidenceScore: 0.5,
+      }));
+    }
+
     return validatedData;
 
   } catch (error) {
