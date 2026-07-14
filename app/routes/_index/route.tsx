@@ -20,38 +20,97 @@ export default function App() {
   const { showForm } = useLoaderData<typeof loader>();
 
   return (
-    <div className={styles.index}>
-      <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
-        <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
-        </p>
-        {showForm && (
-          <Form className={styles.form} method="post" action="/auth/login">
-            <label className={styles.label}>
-              <span>Shop domain</span>
-              <input className={styles.input} type="text" name="shop" />
-              <span>e.g: my-shop-domain.myshopify.com</span>
-            </label>
-            <button className={styles.button} type="submit">
-              Log in
-            </button>
-          </Form>
-        )}
-        <ul className={styles.list}>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-        </ul>
+    <div className={styles.page}>
+      <div className={styles.container}>
+        <div className={styles.mainLayout}>
+          
+          <header className={styles.header}>
+            <span className={styles.brand}>RankPilot AI</span>
+            <h1 className={styles.heading}>AI Merchandising Copilot for Shopify</h1>
+            <p className={styles.subheading}>
+              Find weak product titles, SEO gaps, missing tags, stock issues, and product optimization opportunities before they hurt sales.
+            </p>
+          </header>
+
+          {showForm && (
+            <div className={styles.loginCard}>
+              <div className={styles.loginHeader}>
+                <h2>Welcome Back</h2>
+                <p>Enter your Shopify store domain to continue.</p>
+              </div>
+              <Form className={styles.form} method="post" action="/auth/login">
+                <div className={styles.inputGroup}>
+                  <label htmlFor="shop">Store Domain</label>
+                  <input 
+                    id="shop"
+                    className={styles.input} 
+                    type="text" 
+                    name="shop" 
+                    placeholder="your-store.myshopify.com" 
+                    required 
+                  />
+                </div>
+                <button className={styles.button} type="submit">
+                  Install / Log in
+                </button>
+              </Form>
+              
+              <div className={styles.trustBadges}>
+                <div className={styles.badge}>
+                  <svg className={styles.badgeIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Merchant approval required
+                </div>
+                <div className={styles.badge}>
+                  <svg className={styles.badgeIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  No customer data used
+                </div>
+                <div className={styles.badge}>
+                  <svg className={styles.badgeIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Built for Shopify workflows
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className={styles.features}>
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3>AI Product Audits</h3>
+              <p>Automatically scan your entire catalog for missing descriptions, tags, product types, and poor quality text.</p>
+            </div>
+
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3>Smart SEO Suggestions</h3>
+              <p>Generate high-converting SEO titles and descriptions using advanced LLM analysis of your products.</p>
+            </div>
+
+            <div className={styles.featureCard}>
+              <div className={styles.featureIconWrapper}>
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <h3>Merchandising Insights</h3>
+              <p>Find missing search keywords and critical inventory gaps that are causing you to lose potential sales.</p>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
