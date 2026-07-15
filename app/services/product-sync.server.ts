@@ -256,16 +256,23 @@ export async function syncCollections(
   return totalSynced;
 }
 
-export async function getProductSnapshots(shopDomain: string) {
-  return prisma.productSnapshot.findMany({
-    where: { shop: shopDomain },
-    orderBy: { aiScore: "asc" },
-    include: {
-      _count: {
-        select: { suggestions: true },
+export async function getProductSnapshots(shopDomain: string, page = 1, limit = 25) {
+  const skip = (page - 1) * limit;
+  const [products, totalCount] = await Promise.all([
+    prisma.productSnapshot.findMany({
+      where: { shop: shopDomain },
+      orderBy: { aiScore: "asc" },
+      skip,
+      take: limit,
+      include: {
+        _count: {
+          select: { suggestions: true },
+        },
       },
-    },
-  });
+    }),
+    prisma.productSnapshot.count({ where: { shop: shopDomain } })
+  ]);
+  return { products, totalCount, totalPages: Math.ceil(totalCount / limit) };
 }
 
 export async function getShopStats(shopDomain: string) {

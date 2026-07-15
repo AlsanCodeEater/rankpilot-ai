@@ -13,6 +13,8 @@ import {
   Banner,
   Button,
   Badge,
+  SkeletonDisplayText,
+  Spinner,
 } from "@shopify/polaris";
 import {
   ProductIcon,
@@ -25,34 +27,9 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  console.time("dashboard-loader");
   const { session } = await authenticate.admin(request);
   
-  const totalProducts = await prisma.productSnapshot.count({
-    where: { shop: session.shop },
-  });
-
-  const productAggregates = await prisma.productSnapshot.aggregate({
-    where: { shop: session.shop, aiScore: { not: null } },
-    _avg: { aiScore: true },
-    _sum: { issueCount: true },
-  });
-
-  const lowScoreProducts = await prisma.productSnapshot.count({
-    where: { shop: session.shop, aiScore: { lt: 60 } },
-  });
-
-  const pendingSuggestions = await prisma.aiSuggestion.count({
-    where: { shop: session.shop, status: "pending" },
-  });
-
-  const suggestionsApplied = await prisma.aiSuggestion.count({
-    where: { shop: session.shop, status: "applied" },
-  });
-
-  const shopRecord = await prisma.shop.findUnique({
-    where: { shopDomain: session.shop },
-  });
-
   const { getOrCreateShopPlan, getPlanLimits } = await import("../services/plans.server");
   const { getUsage } = await import("../services/usage.server");
   const { checkAndExpireBetaIfNeeded } = await import("../services/beta.server");
@@ -72,39 +49,28 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     applyLimit: limits.applyLimit,
     aiAuditUsage,
     suggestionApplyUsage,
-    productUsage: totalProducts,
+    productUsage: await prisma.productSnapshot.count({ where: { shop: session.shop } }),
     isBeta: shopPlan.planName === "BETA",
     betaEndsAt: shopPlan.trialEndsAt,
   };
 
-  const stats = {
-    totalProducts,
-    issuesFound: productAggregates._sum.issueCount ?? 0,
-    pendingSuggestions,
-    suggestionsApplied,
-    averageScore: productAggregates._avg.aiScore ?? 0,
-    lowScoreProducts,
-    lastSyncAt: shopRecord?.lastSyncAt ?? null,
-  };
-
-  const { getProductAnalyticsSummary } = await import("../services/analytics.server");
-  const pixelStats = await getProductAnalyticsSummary(session.shop);
-
-  return json({ stats, usageStats, pixelStats, shop: session.shop });
+  console.timeEnd("dashboard-loader");
+  return json({ usageStats, shop: session.shop });
 };
-
 function StatCard({
   title,
   value,
   icon,
   tone,
   url,
+  loading,
 }: {
   title: string;
-  value: string | number;
+  value?: string | number;
   icon: React.ComponentType;
   tone?: "success" | "warning" | "critical" | "info";
   url?: string;
+  loading?: boolean;
 }) {
   const navigate = import.meta.env.SSR ? undefined : useNavigate();
   
@@ -119,9 +85,13 @@ function StatCard({
             <Icon source={icon} tone={tone || "base"} />
           </Box>
         </InlineStack>
-        <Text as="p" variant="headingXl">
-          {value}
-        </Text>
+        {loading ? (
+          <SkeletonDisplayText size="small" />
+        ) : (
+          <Text as="p" variant="headingXl">
+            {value}
+          </Text>
+        )}
       </BlockStack>
     </Card>
   );
@@ -142,10 +112,28 @@ function StatCard({
   return content;
 }
 
+import { useEffect } from "react";
+
 export default function Dashboard() {
-  const { stats, usageStats, pixelStats, shop } = useLoaderData<typeof loader>();
+  const { usageStats, shop } = useLoaderData<typeof loader>();
   const syncFetcher = useFetcher<any>();
   const auditFetcher = useFetcher<any>();
+  const statsFetcher = useFetcher<any>();
+  const pixelFetcher = useFetcher<any>();
+  
+  useEffect(() => {
+    if (statsFetcher.state === "idle" && !statsFetcher.data) {
+      statsFetcher.load("/api/dashboard/stats");
+    }
+    if (pixelFetcher.state === "idle" && !pixelFetcher.data) {
+      pixelFetcher.load("/api/analytics/summary");
+    }
+  }, []);
+
+  const stats = statsFetcher.data?.stats || {};
+  const pixelStats = pixelFetcher.data?.pixelStats || {};
+  const isStatsLoading = !statsFetcher.data;
+  const isPixelLoading = !pixelFetcher.data;
   
   const handleSync = () => {
     syncFetcher.submit(null, { method: "POST", action: "/api/sync-products" });
@@ -235,7 +223,7 @@ export default function Dashboard() {
             <InlineStack align="space-between">
               <Text as="h3" variant="headingMd">Plan Usage Overview</Text>
               <Badge tone={usageStats.planName === "FREE" ? "new" : "success"}>
-                {usageStats.planName} PLAN
+                {`${usageStats.planName} PLAN`}
               </Badge>
             </InlineStack>
             
@@ -280,6 +268,7 @@ export default function Dashboard() {
             <StatCard
               title="Products Scanned"
               value={stats.totalProducts}
+              loading={isStatsLoading}
               icon={ProductIcon}
               tone="info"
               url="/app/products"
@@ -289,6 +278,7 @@ export default function Dashboard() {
             <StatCard
               title="Issues Found"
               value={stats.issuesFound}
+              loading={isStatsLoading}
               icon={AlertBubbleIcon}
               tone={stats.issuesFound > 0 ? "warning" : "success"}
               url="/app/products?filter=has_issues"
@@ -302,6 +292,7 @@ export default function Dashboard() {
                   ? `${Math.round(stats.averageScore)}/100`
                   : "N/A"
               }
+              loading={isStatsLoading}
               icon={StarFilledIcon}
               tone={stats.averageScore && stats.averageScore < 60 ? "critical" : "success"}
               url="/app/products"
@@ -312,6 +303,7 @@ export default function Dashboard() {
             <StatCard
               title="Pending Suggestions"
               value={stats.pendingSuggestions}
+              loading={isStatsLoading}
               icon={AlertBubbleIcon} // Re-using standard icon
               tone="warning"
               url="/app/suggestions"
@@ -321,6 +313,7 @@ export default function Dashboard() {
             <StatCard
               title="Suggestions Applied"
               value={stats.suggestionsApplied}
+              loading={isStatsLoading}
               icon={CheckCircleIcon}
               tone="success"
               url="/app/suggestions?status=applied"
@@ -330,6 +323,7 @@ export default function Dashboard() {
             <StatCard
               title="Low Score Products"
               value={stats.lowScoreProducts}
+              loading={isStatsLoading}
               icon={AlertBubbleIcon}
               tone={stats.lowScoreProducts > 0 ? "critical" : "success"}
               url="/app/products?filter=poor_score"
@@ -346,6 +340,7 @@ export default function Dashboard() {
             <StatCard
               title="Product Views"
               value={pixelStats.productViews}
+              loading={isPixelLoading}
               icon={ProductIcon}
               tone="info"
               url="/app/analytics"
@@ -355,6 +350,7 @@ export default function Dashboard() {
             <StatCard
               title="Add to Carts"
               value={pixelStats.addToCarts}
+              loading={isPixelLoading}
               icon={CheckCircleIcon}
               tone="success"
               url="/app/analytics"
@@ -364,6 +360,7 @@ export default function Dashboard() {
             <StatCard
               title="Search Events"
               value={pixelStats.searchHits}
+              loading={isPixelLoading}
               icon={ProductIcon}
               tone="info"
               url="/app/analytics"
@@ -373,6 +370,7 @@ export default function Dashboard() {
             <StatCard
               title="Collection Events"
               value={pixelStats.collectionHits}
+              loading={isPixelLoading}
               icon={ProductIcon}
               tone="info"
               url="/app/analytics"
@@ -382,6 +380,7 @@ export default function Dashboard() {
             <StatCard
               title="Checkout Starts"
               value={pixelStats.checkoutStarts}
+              loading={isPixelLoading}
               icon={CheckCircleIcon}
               tone="success"
               url="/app/analytics"

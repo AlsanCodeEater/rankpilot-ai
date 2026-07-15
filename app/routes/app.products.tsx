@@ -22,9 +22,15 @@ import { authenticate } from "../shopify.server";
 import { getProductSnapshots } from "../services/product-sync.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  console.time("products-loader");
   const { session } = await authenticate.admin(request);
-  const products = await getProductSnapshots(session.shop);
-  return json({ products, shop: session.shop });
+  const url = new URL(request.url);
+  const page = parseInt(url.searchParams.get("page") || "1", 10);
+  
+  const { products, totalCount, totalPages } = await getProductSnapshots(session.shop, page, 25);
+  
+  console.timeEnd("products-loader");
+  return json({ products, totalCount, totalPages, page, shop: session.shop });
 };
 
 function getQualityBadge(score: number | null) {
@@ -66,7 +72,7 @@ function ProductRow({ product, index }: { product: any; index: number }) {
       <IndexTable.Cell>{getQualityBadge(product.aiScore)}</IndexTable.Cell>
       <IndexTable.Cell>
         {product.issueCount > 0 ? (
-          <Badge tone="warning">{product.issueCount} issues</Badge>
+          <Badge tone="warning">{`${product.issueCount} issues`}</Badge>
         ) : (
           <Text as="span" tone="subdued">0</Text>
         )}
@@ -91,10 +97,17 @@ function ProductRow({ product, index }: { product: any; index: number }) {
 }
 
 export default function Products() {
-  const { products } = useLoaderData<typeof loader>();
+  const { products, totalCount, totalPages, page } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get("filter") || "all";
   
+  const handleNextPage = () => {
+    setSearchParams(prev => { prev.set("page", String(page + 1)); return prev; });
+  };
+  const handlePrevPage = () => {
+    setSearchParams(prev => { prev.set("page", String(page - 1)); return prev; });
+  };
+
   const [sortColumnIndex, setSortColumnIndex] = useState<number | undefined>(undefined);
   const [sortDirection, setSortDirection] = useState<'ascending' | 'descending'>('ascending');
   
@@ -157,9 +170,11 @@ export default function Products() {
     return 0;
   });
 
-  const rowMarkup = sortedProducts.map((product: any, index: number) => (
-    <ProductRow key={product.id} product={product} index={index} />
-  ));
+  const rowMarkup = sortedProducts.map(
+    (product: any, index: number) => (
+      <ProductRow key={product.id} product={product} index={index} />
+    )
+  );
 
   return (
     <Page fullWidth>
@@ -193,6 +208,12 @@ export default function Products() {
                   sortColumnIndex={sortColumnIndex}
                   sortDirection={sortDirection}
                   onSort={handleSort}
+                  pagination={{
+                    hasNext: page < totalPages,
+                    hasPrevious: page > 1,
+                    onNext: handleNextPage,
+                    onPrevious: handlePrevPage,
+                  }}
                   headings={[
                     { title: "Image" },
                     { title: "Product" },

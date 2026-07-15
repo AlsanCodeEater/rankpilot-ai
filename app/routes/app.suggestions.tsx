@@ -21,43 +21,84 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  console.time("suggestions-loader");
   const { session } = await authenticate.admin(request);
   const url = new URL(request.url);
   const productSnapshotId = url.searchParams.get("productSnapshotId");
   const productId = url.searchParams.get("productId");
+  const statusParam = url.searchParams.get("status") || "all";
+  const typeParam = url.searchParams.get("type") || "all";
+  const page = parseInt(url.searchParams.get("page") || "1", 10);
+  const limit = 25;
 
-  const whereClause: any = { shop: session.shop };
+  const baseWhere: any = { shop: session.shop };
   if (productSnapshotId) {
-    whereClause.productSnapshotId = productSnapshotId;
+    baseWhere.productSnapshotId = productSnapshotId;
   } else if (productId) {
-    whereClause.OR = [
+    baseWhere.OR = [
       { productSnapshotId: productId },
       { shopifyProductId: productId }
     ];
   }
+
+  const whereClause = { ...baseWhere };
+  if (statusParam !== "all") {
+    whereClause.status = statusParam;
+  }
   
+  if (typeParam !== "all") {
+    if (typeParam === "seo") {
+      whereClause.suggestionType = { in: ["improve_seo_title", "improve_seo_description"] };
+    } else {
+      whereClause.suggestionType = typeParam;
+    }
+  }
+
   console.log("Suggestions loader whereClause:", JSON.stringify(whereClause));
 
-  const suggestions = await prisma.aiSuggestion.findMany({
-    where: whereClause,
-    orderBy: [{ status: "asc" }, { confidenceScore: "desc" }],
-    include: {
-      productSnapshot: {
-        select: { title: true, shopifyProductId: true, imageUrl: true },
+  const [
+    suggestions,
+    totalAll,
+    totalPending,
+    totalApproved,
+    totalApplied,
+    totalRejected,
+    totalFailed
+  ] = await Promise.all([
+    prisma.aiSuggestion.findMany({
+      where: whereClause,
+      orderBy: [{ status: "asc" }, { confidenceScore: "desc" }],
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        productSnapshot: {
+          select: { title: true, shopifyProductId: true, imageUrl: true },
+        },
       },
-    },
-  });
+    }),
+    prisma.aiSuggestion.count({ where: baseWhere }),
+    prisma.aiSuggestion.count({ where: { ...baseWhere, status: "pending" } }),
+    prisma.aiSuggestion.count({ where: { ...baseWhere, status: "approved" } }),
+    prisma.aiSuggestion.count({ where: { ...baseWhere, status: "applied" } }),
+    prisma.aiSuggestion.count({ where: { ...baseWhere, status: "rejected" } }),
+    prisma.aiSuggestion.count({ where: { ...baseWhere, status: "failed" } }),
+  ]);
 
   const counts = {
-    all: suggestions.length,
-    pending: suggestions.filter((s) => s.status === "pending").length,
-    approved: suggestions.filter((s) => s.status === "approved").length,
-    applied: suggestions.filter((s) => s.status === "applied").length,
-    rejected: suggestions.filter((s) => s.status === "rejected").length,
-    failed: suggestions.filter((s) => s.status === "failed").length,
+    all: totalAll,
+    pending: totalPending,
+    approved: totalApproved,
+    applied: totalApplied,
+    rejected: totalRejected,
+    failed: totalFailed,
   };
 
-  return json({ suggestions, counts, productSnapshotId, productId, shop: session.shop });
+  const totalPages = Math.ceil(
+    (statusParam !== "all" ? counts[statusParam as keyof typeof counts] : counts.all) / limit
+  );
+
+  console.timeEnd("suggestions-loader");
+  return json({ suggestions, counts, productSnapshotId, productId, shop: session.shop, page, totalPages, statusParam, typeParam });
 };
 
 function getTypeBadge(type: string) {
@@ -78,9 +119,9 @@ function getTypeBadge(type: string) {
 }
 
 function getConfidenceBadge(score: number) {
-  if (score >= 0.8) return <Badge tone="success">{Math.round(score * 100)}%</Badge>;
-  if (score >= 0.5) return <Badge tone="warning">{Math.round(score * 100)}%</Badge>;
-  return <Badge tone="critical">{Math.round(score * 100)}%</Badge>;
+  if (score >= 0.8) return <Badge tone="success">{`${Math.round(score * 100)}%`}</Badge>;
+  if (score >= 0.5) return <Badge tone="warning">{`${Math.round(score * 100)}%`}</Badge>;
+  return <Badge tone="critical">{`${Math.round(score * 100)}%`}</Badge>;
 }
 
 function getStatusBadge(status: string) {
@@ -100,8 +141,13 @@ function getStatusBadge(status: string) {
   }
 }
 
+import { useNavigation, useNavigate } from "@remix-run/react";
+
 export default function Suggestions() {
-  const { suggestions, counts, productSnapshotId, productId, shop } = useLoaderData<typeof loader>();
+  const { suggestions, counts, shop, page, totalPages, statusParam, typeParam } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
+  const navigation = useNavigation();
+  const isLoading = navigation.state === "loading";
   
   const statusTabs = [
     { id: "all", content: `All (${counts.all})`, status: "all" },
@@ -112,45 +158,31 @@ export default function Suggestions() {
     { id: "failed", content: `Failed (${counts.failed})`, status: "failed" },
   ];
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const defaultStatusParam = searchParams.get("status");
-  const initialStatusTab = statusTabs.findIndex(t => t.status === defaultStatusParam);
-
-  const [selectedStatusTab, setSelectedStatusTab] = useState(initialStatusTab !== -1 ? initialStatusTab : 0);
-  const [selectedTypeTab, setSelectedTypeTab] = useState(0);
-
   const typeTabs = [
     { id: "all", content: "All", type: "all" },
-    { id: "title", content: "Title", type: "rewrite_title" },
-    { id: "description", content: "Description", type: "improve_description" },
-    { id: "seo", content: "SEO", type: ["improve_seo_title", "improve_seo_description"] },
-    { id: "tags", content: "Tags", type: "add_tags" },
-    { id: "inventory", content: "Stock", type: "inventory_warning" },
-    { id: "keywords", content: "Keywords", type: "search_keyword_gap" },
+    { id: "rewrite_title", content: "Title", type: "rewrite_title" },
+    { id: "improve_description", content: "Description", type: "improve_description" },
+    { id: "seo", content: "SEO", type: "seo" },
+    { id: "add_tags", content: "Tags", type: "add_tags" },
+    { id: "inventory_warning", content: "Stock", type: "inventory_warning" },
+    { id: "search_keyword_gap", content: "Keywords", type: "search_keyword_gap" },
   ];
 
-  const handleStatusTabChange = useCallback(
-    (selectedTabIndex: number) => setSelectedStatusTab(selectedTabIndex),
-    []
-  );
+  const selectedStatusTab = Math.max(0, statusTabs.findIndex(t => t.status === statusParam));
+  const selectedTypeTab = Math.max(0, typeTabs.findIndex(t => t.type === typeParam));
 
-  const handleTypeTabChange = useCallback(
-    (selectedTabIndex: number) => setSelectedTypeTab(selectedTabIndex),
-    []
-  );
+  const handleStatusTabChange = (selectedTabIndex: number) => {
+    navigate(`?status=${statusTabs[selectedTabIndex].status}&type=${typeParam}`);
+  };
 
-  const currentStatus = statusTabs[selectedStatusTab].status;
-  const currentTypeConfig = typeTabs[selectedTypeTab].type;
+  const handleTypeTabChange = (selectedTabIndex: number) => {
+    navigate(`?status=${statusParam}&type=${typeTabs[selectedTabIndex].type}`);
+  };
 
-  const filteredSuggestions = suggestions.filter((s: any) => {
-    const statusMatch = currentStatus === "all" || s.status === currentStatus;
-    const typeMatch =
-      currentTypeConfig === "all" ||
-      (Array.isArray(currentTypeConfig)
-        ? currentTypeConfig.includes(s.suggestionType)
-        : s.suggestionType === currentTypeConfig);
-    return statusMatch && typeMatch;
-  });
+  const handleNextPage = () => navigate(`?status=${statusParam}&type=${typeParam}&page=${page + 1}`);
+  const handlePrevPage = () => navigate(`?status=${statusParam}&type=${typeParam}&page=${page - 1}`);
+
+  const filteredSuggestions = suggestions;
 
   return (
     <Page>
@@ -188,6 +220,14 @@ export default function Suggestions() {
                 {filteredSuggestions.map((suggestion) => (
                   <SuggestionItem key={suggestion.id} suggestion={suggestion} />
                 ))}
+                
+                <Box paddingBlockStart="400">
+                  <InlineStack align="center" gap="400">
+                    <Button disabled={page <= 1} onClick={handlePrevPage}>Previous</Button>
+                    <Text as="p" tone="subdued">Page {page} of {Math.max(1, totalPages)}</Text>
+                    <Button disabled={page >= totalPages} onClick={handleNextPage}>Next</Button>
+                  </InlineStack>
+                </Box>
               </BlockStack>
             )}
           </Layout.Section>
