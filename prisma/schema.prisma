@@ -35,70 +35,71 @@ model Session {
 }
 
 model Shop {
-  id          String   @id @default(uuid())
-  shopDomain  String   @unique
-  name        String?
-  email       String?
-  plan        String?
-  currency    String?
-  timezone    String?
-  lastSyncAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  id         String    @id @default(uuid())
+  shopDomain String    @unique
+  name       String?
+  email      String?
+  plan       String?
+  currency   String?
+  timezone   String?
+  lastSyncAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model ProductSnapshot {
-  id                String   @id @default(cuid())
-  shop              String
-  shopifyProductId  String
-  title             String
-  handle            String?
-  description       String?
-  bodyHtml          String?
-  vendor            String?
-  productType       String?
-  tags              String?
-  status            String?
-  totalInventory    Int?
-  variantsCount     Int      @default(0)
-  seoTitle          String?
-  seoDescription    String?
-  imageUrl          String?
-  aiScore           Int?
-  issueCount        Int      @default(0)
-  lastSyncAt        DateTime?
-  lastScannedAt     DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String    @id @default(cuid())
+  shop             String
+  shopifyProductId String
+  title            String
+  handle           String?
+  description      String?
+  bodyHtml         String?
+  vendor           String?
+  productType      String?
+  tags             String?
+  status           String?
+  totalInventory   Int?
+  variantsCount    Int       @default(0)
+  seoTitle         String?
+  seoDescription   String?
+  imageUrl         String?
+  aiScore          Int?
+  issueCount       Int       @default(0)
+  lastSyncAt       DateTime?
+  lastScannedAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  suggestions       AiSuggestion[]
+  suggestions AiSuggestion[]
 
   @@unique([shop, shopifyProductId])
   @@index([shop])
   @@index([aiScore])
+  @@index([shop, updatedAt])
+  @@index([shop, issueCount])
 }
 
 model CollectionSnapshot {
-  id                    String   @id @default(cuid())
-  shop                  String
-  shopifyCollectionId   String
-  title                 String
-  handle                String?
-  bodyHtml              String?
-  sortOrder             String?
-  productsCount         Int      @default(0)
-  imageUrl              String?
-  lastSyncAt            DateTime?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  shop                String
+  shopifyCollectionId String
+  title               String
+  handle              String?
+  bodyHtml            String?
+  sortOrder           String?
+  productsCount       Int       @default(0)
+  imageUrl            String?
+  lastSyncAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@unique([shop, shopifyCollectionId])
   @@index([shop])
 }
 
 model AiSuggestion {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   shop              String
   productSnapshotId String
   shopifyProductId  String
@@ -108,17 +109,20 @@ model AiSuggestion {
   oldValue          String?
   newValue          String?
   confidenceScore   Float
-  status            String   @default("pending")
+  status            String    @default("pending")
   appliedAt         DateTime?
   errorMessage      String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  productSnapshot   ProductSnapshot @relation(fields: [productSnapshotId], references: [id], onDelete: Cascade)
+  productSnapshot ProductSnapshot @relation(fields: [productSnapshotId], references: [id], onDelete: Cascade)
 
   @@index([shop])
   @@index([status])
   @@index([suggestionType])
+  @@index([shop, status])
+  @@index([shop, suggestionType])
+  @@index([shop, productSnapshotId])
 }
 
 model ShopSettings {
@@ -144,7 +148,9 @@ model ShopPlan {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  usageRecords          UsageRecord[]
+  usageRecords UsageRecord[]
+
+  @@index([shop])
 }
 
 model UsageRecord {
@@ -155,23 +161,24 @@ model UsageRecord {
   periodKey String
   createdAt DateTime @default(now())
 
-  shopPlan  ShopPlan @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  shopPlan ShopPlan @relation(fields: [shop], references: [shop], onDelete: Cascade)
 
+  @@unique([shop, type, periodKey])
   @@index([shop])
   @@index([type])
   @@index([periodKey])
-  @@unique([shop, type, periodKey])
+  @@index([shop, type])
 }
 
 model StoreEvent {
-  id          String   @id @default(cuid())
-  shop        String
-  eventName   String
-  productId   String?
+  id           String   @id @default(cuid())
+  shop         String
+  eventName    String
+  productId    String?
   collectionId String?
-  searchQuery String?
-  eventDate   DateTime
-  createdAt   DateTime @default(now())
+  searchQuery  String?
+  eventDate    DateTime
+  createdAt    DateTime @default(now())
 
   @@index([shop])
   @@index([eventName])
@@ -180,38 +187,38 @@ model StoreEvent {
 }
 
 model BetaMerchant {
-  id                    String   @id @default(cuid())
-  shop                  String   @unique
-  email                 String?
-  storeName             String?
-  niche                 String?
-  productCountEstimate  Int?
-  status                String   @default("invited")
-  notes                 String?
-  betaEndsAt            DateTime?
-  installedAt           DateTime?
-  firstAuditAt          DateTime?
+  id                       String    @id @default(cuid())
+  shop                     String    @unique
+  email                    String?
+  storeName                String?
+  niche                    String?
+  productCountEstimate     Int?
+  status                   String    @default("invited")
+  notes                    String?
+  betaEndsAt               DateTime?
+  installedAt              DateTime?
+  firstAuditAt             DateTime?
   firstSuggestionAppliedAt DateTime?
-  feedbackCollectedAt   DateTime?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  feedbackCollectedAt      DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   @@index([shop])
   @@index([status])
 }
 
 model ProductAnalyticsDaily {
-  id            String   @id @default(cuid())
-  shop          String
-  productId     String
-  dateKey       String
-  productViews  Int      @default(0)
-  addToCarts    Int      @default(0)
-  searchHits    Int      @default(0)
-  collectionHits Int     @default(0)
-  checkoutStarts Int     @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String   @id @default(cuid())
+  shop           String
+  productId      String
+  dateKey        String
+  productViews   Int      @default(0)
+  addToCarts     Int      @default(0)
+  searchHits     Int      @default(0)
+  collectionHits Int      @default(0)
+  checkoutStarts Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@unique([shop, productId, dateKey])
   @@index([shop])
@@ -220,12 +227,12 @@ model ProductAnalyticsDaily {
 }
 
 model PixelInstall {
-  id          String   @id @default(cuid())
-  shop        String   @unique
-  webPixelId  String?
-  endpoint    String
-  secretHash  String
-  status      String   @default("inactive")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  shop       String   @unique
+  webPixelId String?
+  endpoint   String
+  secretHash String
+  status     String   @default("inactive")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
