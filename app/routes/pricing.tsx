@@ -20,45 +20,56 @@ export default function Pricing() {
           <div className="pricing-plan">
             <h3 className="plan-name">Free</h3>
             <div className="plan-price">$0<span>/mo</span></div>
-            <p className="plan-desc">Perfect for testing the AI capabilities on a small selection of products.</p>
+            <p className="plan-desc">Perfect for testing the AI capabilities.</p>
             <ul className="plan-features">
-              <li>Up to 50 Products Synced</li>
-              <li>10 AI Audits per month</li>
-              <li>Basic Title & Description SEO</li>
+              <li>25 AI Audits per month</li>
+              <li>10 Suggestion Applies per month</li>
               <li>Manual Suggestion Review</li>
             </ul>
             <a href="https://rankpilotai.alsanlab.cloud" className="plan-cta">Install for Free</a>
           </div>
 
-          {/* Pro Plan */}
-          <div className="pricing-plan popular">
-            <span className="popular-badge">Most Popular</span>
-            <h3 className="plan-name">Pro</h3>
-            <div className="plan-price">$29<span>/mo</span></div>
-            <p className="plan-desc">For growing stores that need comprehensive catalog optimization.</p>
+          {/* Starter Plan */}
+          <div className="pricing-plan">
+            <h3 className="plan-name">Starter</h3>
+            <div className="plan-price">$9<span>/mo</span></div>
+            <p className="plan-desc">For growing stores ready to optimize.</p>
             <ul className="plan-features">
-              <li>Up to 1,000 Products Synced</li>
-              <li>250 AI Audits per month</li>
-              <li>Advanced SEO & Keyword Gap Analysis</li>
-              <li>Missing Tags & Inventory Warnings</li>
-              <li>Priority Support</li>
+              <li>500 AI Audits per month</li>
+              <li>100 Suggestion Applies per month</li>
+              <li>Bulk Audit Enabled</li>
             </ul>
             <a href="https://rankpilotai.alsanlab.cloud" className="plan-cta">Start Free 7-Day Trial</a>
           </div>
 
-          {/* Advanced Plan */}
-          <div className="pricing-plan">
-            <h3 className="plan-name">Advance</h3>
-            <div className="plan-price">$79<span>/mo</span></div>
-            <p className="plan-desc">Uncapped potential for large catalogs and high-volume merchants.</p>
+          {/* Growth Plan */}
+          <div className="pricing-plan popular">
+            <span className="popular-badge">Most Popular</span>
+            <h3 className="plan-name">Growth</h3>
+            <div className="plan-price">$29<span>/mo</span></div>
+            <p className="plan-desc">For established stores scaling their SEO.</p>
             <ul className="plan-features">
-              <li>Up to 10,000 Products Synced</li>
-              <li>Unlimited AI Audits</li>
-              <li>Bulk Apply Suggestions</li>
-              <li>Early Access to Beta Features</li>
-              <li>Dedicated Account Manager</li>
+              <li>2,500 AI Audits per month</li>
+              <li>500 Suggestion Applies per month</li>
+              <li>Bulk Audit Enabled</li>
+              <li>Basic Analytics</li>
             </ul>
-            <a href="mailto:support@alsanlab.cloud?subject=Advance%20Plan%20Inquiry" className="plan-cta">Contact Sales</a>
+            <a href="https://rankpilotai.alsanlab.cloud" className="plan-cta">Start Free 7-Day Trial</a>
+          </div>
+
+          {/* Pro Plan */}
+          <div className="pricing-plan">
+            <h3 className="plan-name">Pro</h3>
+            <div className="plan-price">$79<span>/mo</span></div>
+            <p className="plan-desc">Uncapped potential for large catalogs.</p>
+            <ul className="plan-features">
+              <li>10,000 AI Audits per month</li>
+              <li>2,000 Suggestion Applies per month</li>
+              <li>Bulk Audit Enabled</li>
+              <li>Advanced Analytics</li>
+              <li>Priority Support</li>
+            </ul>
+            <a href="https://rankpilotai.alsanlab.cloud" className="plan-cta">Contact Sales</a>
           </div>
         </div>
 

@@ -81,6 +81,15 @@ export default function BillingPage() {
                     <Text as="span" tone="subdued">No Bulk Audit</Text>
                   )}
                 </List.Item>
+                <List.Item>
+                  {plan.advancedAnalytics ? (
+                    <Text as="span" tone="success">Advanced Analytics</Text>
+                  ) : plan.analytics ? (
+                    <Text as="span" tone="success">Basic Analytics</Text>
+                  ) : (
+                    <Text as="span" tone="subdued">No Analytics</Text>
+                  )}
+                </List.Item>
               </List>
             </Box>
 
