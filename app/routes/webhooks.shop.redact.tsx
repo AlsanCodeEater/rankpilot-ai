@@ -8,22 +8,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   
   logger.info(`Received ${topic} webhook for ${shop}`, { payload });
 
-  // We should delete store configurations and all shop data
-  
-  await db.aiSuggestion.deleteMany({ where: { shop } });
-  await db.productSnapshot.deleteMany({ where: { shop } });
-  await db.collectionSnapshot.deleteMany({ where: { shop } });
-  await db.usageRecord.deleteMany({ where: { shopDomain: shop } });
-  await db.storeEvent.deleteMany({ where: { shop } });
-  await db.productAnalyticsDaily.deleteMany({ where: { shop } });
-  
-  await db.shopSettings.deleteMany({ where: { shopDomain: shop } });
-  await db.pixelInstall.deleteMany({ where: { shop } });
-  await db.session.deleteMany({ where: { shop } });
-  
-  await db.betaMerchant.deleteMany({ where: { shopDomain: shop } });
-  await db.shopPlan.deleteMany({ where: { shop } });
-  await db.shop.deleteMany({ where: { shopDomain: shop } });
+  try {
+    // Child records first
+    await db.aiSuggestion.deleteMany({ where: { shop } });
+    await db.productAnalyticsDaily.deleteMany({ where: { shop } });
+    await db.storeEvent.deleteMany({ where: { shop } });
+    await db.usageRecord.deleteMany({ where: { shop } });
 
-  return new Response();
+    // Parent/isolated records
+    await db.productSnapshot.deleteMany({ where: { shop } });
+    await db.collectionSnapshot.deleteMany({ where: { shop } });
+    await db.pixelInstall.deleteMany({ where: { shop } });
+    await db.shopSettings.deleteMany({ where: { shopDomain: shop } });
+    await db.shopPlan.deleteMany({ where: { shop } });
+    await db.session.deleteMany({ where: { shop } });
+    
+    // Update beta merchant status if it exists
+    await db.betaMerchant.updateMany({
+      where: { shop },
+      data: { status: "uninstalled" }
+    });
+
+    // Finally delete the shop record
+    await db.shop.deleteMany({ where: { shopDomain: shop } });
+    
+  } catch (error) {
+    logger.error("Shop redact cleanup failed", { shop, error });
+  }
+
+  return new Response("OK", { status: 200 });
 };

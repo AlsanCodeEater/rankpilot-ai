@@ -7,6 +7,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   
   logger.info(`Received ${topic} webhook for ${shop}`, { payload });
 
-  // RankPilot AI does not store any customer personal data, so there is nothing to return.
-  return new Response();
+  // RankPilot AI does not store customer personal data, so there is nothing to provide.
+  return new Response("OK", { status: 200 });
 };

@@ -8,5 +8,5 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   logger.info(`Received ${topic} webhook for ${shop}`, { payload });
 
   // RankPilot AI does not store customer personal data, so there is nothing to delete.
-  return new Response();
+  return new Response("OK", { status: 200 });
 };
