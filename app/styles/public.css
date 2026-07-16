@@ -1,0 +1,245 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+.public-page {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(180deg, #fafafa 0%, #f4f6f8 100%);
+  min-height: 100vh;
+  color: #202223;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.public-container {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding-top: 4rem;
+  padding-bottom: 6rem;
+}
+
+.public-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.public-brand {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #6366f1;
+  margin-bottom: 1rem;
+  display: inline-block;
+}
+
+.public-heading {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 1rem 0;
+  background: linear-gradient(135deg, #111827 0%, #4f46e5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.public-subheading {
+  font-size: 1.25rem;
+  color: #6b7280;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.public-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.02);
+  padding: 3rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.public-card h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.public-card h2:first-child {
+  margin-top: 0;
+}
+
+.public-card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.public-card p {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #4b5563;
+  margin-bottom: 1rem;
+}
+
+.public-card ul {
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.public-card li {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+}
+
+.public-card a {
+  color: #4f46e5;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.public-card a:hover {
+  color: #4338ca;
+  text-decoration: underline;
+}
+
+.public-nav {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.public-nav a {
+  color: #6b7280;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.public-nav a:hover {
+  color: #111827;
+}
+
+/* Pricing specific */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.pricing-plan {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  padding: 2.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing-plan.popular {
+  border: 2px solid #6366f1;
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
+  transform: translateY(-5px);
+}
+
+.popular-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #6366f1;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.plan-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.plan-price {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.plan-price span {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.plan-desc {
+  color: #6b7280;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+  flex-grow: 1;
+}
+
+.plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+.plan-features li::before {
+  content: "✓";
+  color: #10b981;
+  font-weight: bold;
+}
+
+.plan-cta {
+  display: block;
+  text-align: center;
+  background: #f3f4f6;
+  color: #111827;
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.plan-cta:hover {
+  background: #e5e7eb;
+}
+
+.pricing-plan.popular .plan-cta {
+  background: #4f46e5;
+  color: white;
+}
+
+.pricing-plan.popular .plan-cta:hover {
+  background: #4338ca;
+}
