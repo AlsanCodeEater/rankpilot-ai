@@ -12,17 +12,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await db.session.deleteMany({ where: { shop } });
   }
 
-  // Mark pixel inactive and clear secrets
-  await db.pixelInstall.updateMany({
-    where: { shop },
-    data: { status: "inactive", webPixelId: null, secretHash: "redacted" }
-  });
-
-  // Reset shop plan billing status
+  // Wipe all app data for this shop
+  await db.aiSuggestion.deleteMany({ where: { shop } });
+  await db.productSnapshot.deleteMany({ where: { shop } });
+  await db.collectionSnapshot.deleteMany({ where: { shop } });
+  await db.usageRecord.deleteMany({ where: { shopDomain: shop } });
+  await db.storeEvent.deleteMany({ where: { shop } });
+  await db.productAnalyticsDaily.deleteMany({ where: { shop } });
+  
+  await db.shopSettings.deleteMany({ where: { shopDomain: shop } });
+  await db.pixelInstall.deleteMany({ where: { shop } });
+  
+  await db.betaMerchant.deleteMany({ where: { shopDomain: shop } });
+  
+  // Mark shop as uninstalled (or delete)
   await db.shopPlan.updateMany({
     where: { shop },
     data: { billingStatus: "uninstalled", shopifySubscriptionId: null }
   });
+  
+  // Actually, let's delete the shop completely for safety
+  await db.shopPlan.deleteMany({ where: { shop } });
+  await db.shop.deleteMany({ where: { shopDomain: shop } });
 
   return new Response();
 };

@@ -123,11 +123,17 @@ export async function auditProductWithAI(product: any): Promise<AiAuditResponse>
   } catch (error) {
     console.error(`AI Audit failed using ${provider} (${model}):`, error);
     
-    // Fallback result instead of crashing
     return {
       score: 50,
       issues: ["AI audit failed or returned invalid JSON"],
-      suggestions: [],
+      suggestions: [{
+        type: "improve_seo_description",
+        issue: "AI audit failed or returned invalid JSON",
+        reason: "The AI service encountered an error. Please try auditing this product again.",
+        oldValue: null,
+        newValue: null,
+        confidenceScore: 0,
+      }],
     };
   }
 }

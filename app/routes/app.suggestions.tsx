@@ -187,14 +187,6 @@ export default function Suggestions() {
   return (
     <Page>
       <TitleBar title="AI Suggestions" />
-      
-      {suggestions.length === 0 && (
-        <Box paddingBlockEnd="200">
-          <Text as="p" tone="subdued" variant="bodySm">
-            Debug: loaded 0 suggestions for shop {shop}
-          </Text>
-        </Box>
-      )}
 
       <BlockStack gap="500">
         <Card padding="0">

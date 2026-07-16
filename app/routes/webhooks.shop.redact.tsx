@@ -8,20 +8,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   
   logger.info(`Received ${topic} webhook for ${shop}`, { payload });
 
-  // 48 hours after a store uninstalls your app, Shopify will send a shop/redact webhook.
-  // We should delete store configurations. We do not delete ProductAnalyticsDaily if we want to retain anonymous aggregated data, 
-  // but we can delete products, settings, and secrets.
+  // We should delete store configurations and all shop data
+  
+  await db.aiSuggestion.deleteMany({ where: { shop } });
+  await db.productSnapshot.deleteMany({ where: { shop } });
+  await db.collectionSnapshot.deleteMany({ where: { shop } });
+  await db.usageRecord.deleteMany({ where: { shopDomain: shop } });
+  await db.storeEvent.deleteMany({ where: { shop } });
+  await db.productAnalyticsDaily.deleteMany({ where: { shop } });
   
   await db.shopSettings.deleteMany({ where: { shopDomain: shop } });
-  
-  // Wipe pixel data entirely
   await db.pixelInstall.deleteMany({ where: { shop } });
-  
-  // Wipe session if any remain
   await db.session.deleteMany({ where: { shop } });
-
-  // Note: We leave ProductSnapshot and Analytics data untouched to preserve aggregate AI performance history, 
-  // but you can adjust this if needed by deleting them as well.
+  
+  await db.betaMerchant.deleteMany({ where: { shopDomain: shop } });
+  await db.shopPlan.deleteMany({ where: { shop } });
+  await db.shop.deleteMany({ where: { shopDomain: shop } });
 
   return new Response();
 };
