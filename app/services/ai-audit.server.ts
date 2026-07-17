@@ -44,6 +44,12 @@ Product Data:
 - SEO Title: ${product.seoTitle || "N/A"}
 - SEO Description: ${product.seoDescription || "N/A"}
 
+CRITICAL RULES FOR PLACEHOLDERS AND BRAND NAMES:
+1. NEVER use placeholders such as [Brand Name], [Brand], [Product Name], {{brand}}, or generic template variables in your output.
+2. If product vendor/brand is missing, omit the brand entirely from the suggestion. Do not invent a fake brand.
+3. If the current product title contains [Brand Name], remove it and create a clean merchant-ready title.
+4. Every suggested value (newValue) MUST be ready to apply directly to Shopify without any human editing.
+
 Please check for:
 - weak title or missing buyer keywords
 - weak description
@@ -136,4 +142,23 @@ export async function auditProductWithAI(product: any): Promise<AiAuditResponse>
       }],
     };
   }
+}
+
+const PLACEHOLDER_REGEX = /\[(brand name|brand|product name|your brand|your product|company name)\]|\{\{.*?\}\}|<[^>]+>/gi;
+
+export function cleanPlaceholderText(value: string | null | undefined, product: any): string | null {
+  if (!value) return value || null;
+
+  const fallbackBrand = product.vendor || product.brand || product.shopName || "";
+
+  let cleaned = value.replace(PLACEHOLDER_REGEX, fallbackBrand);
+
+  // If no fallbackBrand, remove empty placeholder leftovers
+  cleaned = cleaned
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+-\s+$/g, "")
+    .replace(/^\s+-\s+/g, "")
+    .trim();
+
+  return cleaned;
 }

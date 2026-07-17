@@ -1,7 +1,7 @@
 import { json, type ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { auditProductWithAI } from "../services/ai-audit.server";
+import { auditProductWithAI, cleanPlaceholderText } from "../services/ai-audit.server";
 import { recalculateProductScore } from "../services/suggestions.server";
 import { checkUsageLimit, incrementUsage } from "../services/usage.server";
 import { checkAndExpireBetaIfNeeded } from "../services/beta.server";
@@ -54,16 +54,46 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let createdSuggestions = 0;
     // Save new suggestions
     for (const suggestion of result.suggestions) {
+      const issue = cleanPlaceholderText(suggestion.issue, product) || suggestion.issue;
+      const reason = cleanPlaceholderText(suggestion.reason, product) || suggestion.reason;
+      const newValue = cleanPlaceholderText(suggestion.newValue, product);
+
+      if (newValue && /\[(brand name|brand|product name|your brand|your product|company name)\]/i.test(newValue)) {
+        console.warn("Removed placeholder from AI suggestion", { productId: product.id, suggestionType: suggestion.type });
+        continue; // Discard bad suggestion entirely
+      }
+
+      let oldValue: string | null = null;
+      switch (suggestion.type) {
+        case "rewrite_title":
+        case "improve_title": // fallthrough for safety
+          oldValue = product.title;
+          break;
+        case "improve_description":
+          oldValue = product.description || product.bodyHtml;
+          break;
+        case "add_tags":
+        case "improve_tags":
+          oldValue = product.tags;
+          break;
+        case "improve_seo_title":
+          oldValue = product.seoTitle;
+          break;
+        case "improve_seo_description":
+          oldValue = product.seoDescription;
+          break;
+      }
+
       await prisma.aiSuggestion.create({
         data: {
           shop: session.shop,
           productSnapshotId: product.id,
           shopifyProductId: product.shopifyProductId,
           suggestionType: suggestion.type,
-          issue: suggestion.issue,
-          reason: suggestion.reason,
-          oldValue: suggestion.oldValue || null,
-          newValue: suggestion.newValue || null,
+          issue,
+          reason,
+          oldValue,
+          newValue,
           confidenceScore: suggestion.confidenceScore,
           status: "pending",
         },
