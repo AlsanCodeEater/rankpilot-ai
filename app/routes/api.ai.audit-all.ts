@@ -2,6 +2,7 @@ import { json, type ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { auditProductWithAI } from "../services/ai-audit.server";
+import { recalculateProductScore } from "../services/suggestions.server";
 import { canUseFeature } from "../services/plans.server";
 import { checkUsageLimit, incrementUsage } from "../services/usage.server";
 import { checkAndExpireBetaIfNeeded } from "../services/beta.server";
@@ -85,22 +86,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         createdSuggestions++;
       }
 
-      const pendingCount = await prisma.aiSuggestion.count({
-        where: { productSnapshotId: product.id, status: "pending" }
-      });
-
-      await prisma.productSnapshot.update({
-        where: { id: product.id },
-        data: {
-          aiScore: result.score,
-          issueCount: pendingCount,
-        },
-      });
+      const recalcResult = await recalculateProductScore(product.id, result.score);
+      const pendingCount = recalcResult?.activeActionableIssueCount || 0;
+      const finalScore = recalcResult?.nextScore || result.score;
 
       console.log({
         productId: product.id,
         shop: session.shop,
-        aiScore: result.score,
+        aiScore: finalScore,
         issueCount: pendingCount,
         suggestionsReturned: result.suggestions?.length || 0,
         suggestionsCreated: createdSuggestions

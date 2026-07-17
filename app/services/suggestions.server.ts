@@ -24,6 +24,50 @@ const PRODUCT_UPDATE_MUTATION = `#graphql
   }
 `;
 
+export const NON_ACTIONABLE_TYPES = [
+  "inventory_warning",
+  "search_keyword_gap",
+  "stock_warning",
+  "informational"
+];
+
+export async function getActiveActionableIssueCount(productSnapshotId: string) {
+  return prisma.aiSuggestion.count({
+    where: {
+      productSnapshotId,
+      status: { in: ["pending", "approved"] },
+      suggestionType: { notIn: NON_ACTIONABLE_TYPES }
+    }
+  });
+}
+
+export async function recalculateProductScore(productSnapshotId: string, explicitScoreUpdate?: number) {
+  const activeActionableIssueCount = await getActiveActionableIssueCount(productSnapshotId);
+  const product = await prisma.productSnapshot.findUnique({ where: { id: productSnapshotId } });
+  
+  if (!product) return;
+
+  let nextScore = product.aiScore || 0;
+  
+  if (explicitScoreUpdate !== undefined) {
+    nextScore = explicitScoreUpdate;
+  } else if (activeActionableIssueCount === 0) {
+    nextScore = Math.max(nextScore, 95);
+  }
+
+  await prisma.productSnapshot.update({
+    where: { id: productSnapshotId },
+    data: {
+      issueCount: activeActionableIssueCount,
+      aiScore: nextScore,
+      lastScannedAt: new Date(),
+      updatedAt: new Date()
+    }
+  });
+
+  return { activeActionableIssueCount, nextScore };
+}
+
 // --- Get Suggestions ---
 
 export async function getSuggestionsForShop(shop: string) {
@@ -72,6 +116,8 @@ export async function approveSuggestion(shop: string, suggestionId: string) {
     data: { status: "approved" },
   });
 
+  await recalculateProductScore(suggestion.productSnapshotId);
+
   return { success: true, status: "approved", message: "Suggestion approved" };
 }
 
@@ -100,6 +146,8 @@ export async function rejectSuggestion(shop: string, suggestionId: string) {
     where: { id: suggestionId },
     data: { status: "rejected" },
   });
+
+  await recalculateProductScore(suggestion.productSnapshotId);
 
   return { success: true, status: "rejected", message: "Suggestion rejected" };
 }
@@ -138,18 +186,8 @@ export async function applySuggestionToShopify(
   }
 
   // 2. Handle non-applicable types (informational only)
-  if (
-    suggestion.suggestionType === "inventory_warning" ||
-    suggestion.suggestionType === "search_keyword_gap"
-  ) {
+  if (NON_ACTIONABLE_TYPES.includes(suggestion.suggestionType)) {
     const errorMsg = "This suggestion type is informational and cannot be applied automatically.";
-    await prisma.aiSuggestion.update({
-      where: { id: suggestionId },
-      data: {
-        status: "failed",
-        errorMessage: errorMsg,
-      },
-    });
     return {
       success: false,
       error: errorMsg,
@@ -285,14 +323,7 @@ export async function applySuggestionToShopify(
     }
 
     // 7. Recalculate issueCount and aiScore based on remaining active suggestions
-    const activeIssueCount = await prisma.aiSuggestion.count({
-      where: {
-        productSnapshotId: product.id,
-        status: {
-          in: ["pending", "approved", "failed"]
-        }
-      }
-    });
+    const activeIssueCount = await getActiveActionableIssueCount(product.id);
 
     const nextScore =
       activeIssueCount === 0

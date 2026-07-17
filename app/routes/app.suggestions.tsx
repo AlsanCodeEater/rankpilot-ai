@@ -360,14 +360,16 @@ function SuggestionItem({ suggestion }: { suggestion: any }) {
               >
                 Reject
               </Button>
-              <Button
-                onClick={() => handleAction(suggestion.id, "apply")}
-                variant="primary"
-                tone="success"
-                loading={isSubmitting}
-              >
-                Apply Change
-              </Button>
+              {!["inventory_warning", "search_keyword_gap", "stock_warning", "informational"].includes(suggestion.suggestionType) && (
+                <Button
+                  onClick={() => handleAction(suggestion.id, "apply")}
+                  variant="primary"
+                  tone="success"
+                  loading={isSubmitting}
+                >
+                  Apply Change
+                </Button>
+              )}
             </InlineStack>
           </>
         )}
