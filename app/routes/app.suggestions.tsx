@@ -15,7 +15,7 @@ import {
   Divider,
   Tabs,
 } from "@shopify/polaris";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -141,7 +141,7 @@ function getStatusBadge(status: string) {
   }
 }
 
-import { useNavigation, useNavigate } from "@remix-run/react";
+import { useNavigation, useNavigate, useRevalidator } from "@remix-run/react";
 
 export default function Suggestions() {
   const { suggestions, counts, shop, page, totalPages, statusParam, typeParam } = useLoaderData<typeof loader>();
@@ -230,7 +230,14 @@ export default function Suggestions() {
 }
 
 function SuggestionItem({ suggestion }: { suggestion: any }) {
-  const fetcher = useFetcher();
+  const fetcher = useFetcher<any>();
+  const revalidator = useRevalidator();
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.success) {
+      revalidator.revalidate();
+    }
+  }, [fetcher.state, fetcher.data, revalidator]);
   
   const handleAction = (suggestionId: string, actionEndpoint: string) => {
     fetcher.submit(

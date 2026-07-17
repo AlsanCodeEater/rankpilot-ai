@@ -284,27 +284,42 @@ export async function applySuggestionToShopify(
         break;
     }
 
-    // Improve AI score and decrease issue count optimistically
-    const currentScore = product.aiScore || 40;
-    const currentIssues = product.issueCount || 1;
-    
-    // Reduce issue count by 1, floored at 0
-    const newIssueCount = Math.max(0, currentIssues - 1);
-    snapshotUpdate.issueCount = newIssueCount;
+    // 7. Recalculate issueCount and aiScore based on remaining active suggestions
+    const activeIssueCount = await prisma.aiSuggestion.count({
+      where: {
+        productSnapshotId: product.id,
+        status: {
+          in: ["pending", "approved", "failed"]
+        }
+      }
+    });
 
-    // If no issues remain, score is perfect 100. Otherwise, bump by 15.
-    if (newIssueCount === 0) {
-      snapshotUpdate.aiScore = 100;
-    } else {
-      snapshotUpdate.aiScore = Math.min(99, currentScore + 15);
-    }
+    const nextScore =
+      activeIssueCount === 0
+        ? Math.max(product.aiScore || 0, 95)
+        : Math.min(99, Math.max(product.aiScore || 50, 100 - activeIssueCount * 10));
 
-    if (Object.keys(snapshotUpdate).length > 0) {
-      await prisma.productSnapshot.update({
-        where: { id: product.id },
-        data: snapshotUpdate,
-      });
-    }
+    console.log("Suggestion apply result", {
+      shop,
+      suggestionId,
+      productSnapshotId: product.id,
+      oldIssueCount: product.issueCount,
+      activeIssueCount,
+      oldScore: product.aiScore,
+      nextScore,
+      suggestionType: suggestion.suggestionType
+    });
+
+    await prisma.productSnapshot.update({
+      where: { id: product.id },
+      data: {
+        ...snapshotUpdate,
+        issueCount: activeIssueCount,
+        aiScore: nextScore,
+        lastScannedAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
 
     return {
       success: true,
