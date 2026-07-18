@@ -3,16 +3,10 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { logger } from "../services/logger.server";
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, session, topic } = await authenticate.webhook(request);
-
-  logger.info(`Received ${topic} webhook for ${shop}`);
-
+async function cleanupShopAfterUninstall(shop: string) {
   try {
-    if (session) {
-      await db.session.deleteMany({ where: { shop } });
-    }
-
+    await db.session.deleteMany({ where: { shop } });
+    
     // Child records first
     await db.aiSuggestion.deleteMany({ where: { shop } });
     await db.productAnalyticsDaily.deleteMany({ where: { shop } });
@@ -34,10 +28,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Finally delete the shop record
     await db.shop.deleteMany({ where: { shopDomain: shop } });
-    
   } catch (error) {
     logger.error("App uninstall cleanup failed", { shop, error });
   }
+}
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { shop, topic } = await authenticate.webhook(request);
+
+  logger.info(`Received ${topic} webhook for ${shop}`);
+  console.log("Queued uninstall cleanup", { shop });
+
+  setImmediate(() => {
+    cleanupShopAfterUninstall(shop).catch((error) => {
+      logger.error("Background uninstall cleanup failed", { shop, error });
+    });
+  });
 
   return new Response("OK", { status: 200 });
 };
