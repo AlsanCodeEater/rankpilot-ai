@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs } from "@remix-run/node";
+import { json, redirect, type ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { PLAN_LIMITS, type PlanName } from "../services/plans.server";
 import prisma from "../db.server";
@@ -33,11 +33,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (planName === "FREE") {
-    return json({ error: "Cannot create paid subscription for FREE plan" }, { status: 400 });
+    await prisma.shopPlan.upsert({
+      where: { shop: session.shop },
+      create: { shop: session.shop, planName: "FREE", billingStatus: "free" },
+      update: { planName: "FREE", billingStatus: "free" },
+    });
+    return redirect(`/app/billing?plan=free&changed=1`);
   }
 
   const price = PLAN_LIMITS[planName].monthlyPrice;
-  const returnUrl = `${process.env.SHOPIFY_APP_URL}/app/billing`;
+  const returnUrl = `${process.env.SHOPIFY_APP_URL}/app/billing?billing=success&planName=${planName}`;
 
   const variables = {
     name: `RankPilot AI ${planName}`,
@@ -75,12 +80,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "No confirmation URL returned from Shopify" }, { status: 500 });
     }
 
-    // Optionally save the intent in our database if needed, but for now we just return the URL
-    // so the merchant can approve it. After approval, they return to returnUrl.
-    return json({
-      success: true,
-      confirmationUrl: data.confirmationUrl,
-    });
+    return redirect(data.confirmationUrl);
   } catch (error) {
     console.error("Billing mutation error:", error);
     return json({ error: "Failed to create subscription due to internal error" }, { status: 500 });

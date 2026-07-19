@@ -1,4 +1,4 @@
-import { useLoaderData, useSubmit, useNavigation, useRouteError } from "@remix-run/react";
+import { useLoaderData, useNavigation, useRouteError, Form } from "@remix-run/react";
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import {
   Page,
@@ -11,33 +11,44 @@ import {
   Badge,
   List,
   Box,
+  Banner,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { getOrCreateShopPlan, PLAN_LIMITS, type PlanName } from "../services/plans.server";
+import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
+  const url = new URL(request.url);
+  const billingSuccess = url.searchParams.get("billing") === "success";
+  const planChanged = url.searchParams.get("changed") === "1";
+  const newPlanName = url.searchParams.get("planName") || url.searchParams.get("plan");
+
+  if (billingSuccess && newPlanName && newPlanName !== "FREE") {
+    // Optimistically update the plan if coming back from Shopify billing success
+    await prisma.shopPlan.upsert({
+      where: { shop: session.shop },
+      create: { shop: session.shop, planName: newPlanName, billingStatus: "active" },
+      update: { planName: newPlanName, billingStatus: "active" }
+    });
+  }
+
   const shopPlan = await getOrCreateShopPlan(session.shop);
   
   return json({
     currentPlan: shopPlan.planName as PlanName,
     plans: PLAN_LIMITS,
+    showSuccessBanner: billingSuccess || planChanged,
+    updatedPlanName: newPlanName,
   });
 };
 
 export default function BillingPage() {
-  const { currentPlan, plans } = useLoaderData<typeof loader>();
-  const submit = useSubmit();
+  const { currentPlan, plans, showSuccessBanner } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   
   const isUpgrading = navigation.state === "submitting";
-
-  const handleUpgrade = (planName: string) => {
-    const formData = new FormData();
-    formData.append("planName", planName);
-    submit(formData, { method: "POST", action: "/api/billing/create" });
-  };
 
   const renderPlanCard = (name: PlanName, title: string) => {
     const plan = plans[name];
@@ -93,16 +104,21 @@ export default function BillingPage() {
               </List>
             </Box>
 
-            <Button
-              size="large"
-              variant={isCurrent ? "secondary" : "primary"}
-              disabled={isCurrent || isUpgrading || name === "FREE"}
-              onClick={() => handleUpgrade(name)}
-              loading={isUpgrading && navigation.formData?.get("planName") === name}
-              fullWidth
-            >
-              {isCurrent ? "Active" : name === "FREE" ? "Included" : `Upgrade to ${title}`}
-            </Button>
+            <Box>
+              <Form method="post" action="/api/billing/create">
+                <input type="hidden" name="planName" value={name} />
+                <Button
+                  submit
+                  size="large"
+                  variant={isCurrent ? "secondary" : "primary"}
+                  disabled={isCurrent || isUpgrading}
+                  loading={isUpgrading && navigation.formData?.get("planName") === name}
+                  fullWidth
+                >
+                  {isCurrent ? "Active" : name === "FREE" ? "Downgrade to Free" : `Choose ${title}`}
+                </Button>
+              </Form>
+            </Box>
           </BlockStack>
         </Card>
       </Layout.Section>
@@ -123,6 +139,12 @@ export default function BillingPage() {
             </Text>
           </Box>
         </Box>
+
+        {showSuccessBanner && (
+          <Banner tone="success" title="Plan updated successfully">
+            <p>Your billing plan has been changed to {currentPlan}.</p>
+          </Banner>
+        )}
 
         <Layout>
           {currentPlan === "BETA" && (
