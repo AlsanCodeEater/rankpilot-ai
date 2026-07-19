@@ -99,11 +99,8 @@ export async function auditProductWithAI(product: any): Promise<AiAuditResponse>
   const maxRetries = 1;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    // If it's a retry and we have openrouter configured, we can try falling back.
-    // getAIClient can handle fallback if we pass a provider name, but for now we rely on default env fallback,
-    // or we can pass an explicit override if we modify getAIClient. Let's just use the default client for now
-    // and rely on the provider configured in env, since the user said "If AI_PROVIDER=zai fails... and OPENROUTER_API_KEY exists, try OpenRouter".
-    const useFallback = attempt > 0 && process.env.OPENROUTER_API_KEY ? "openrouter" : undefined;
+    // If it's a retry and we have a fallback provider configured, we can try falling back.
+    const useFallback = attempt > 0 && process.env.AI_FALLBACK_PROVIDER ? process.env.AI_FALLBACK_PROVIDER : undefined;
     const { client, model, provider } = getAIClient(useFallback);
 
     try {

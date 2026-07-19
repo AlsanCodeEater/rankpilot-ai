@@ -32,7 +32,7 @@ export function getAIClient(providerOverride?: string) {
     });
     return {
       client,
-      model: process.env.OPENROUTER_MODEL || "~openai/gpt-latest",
+      model: process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash",
       provider: "openrouter",
     };
   }
