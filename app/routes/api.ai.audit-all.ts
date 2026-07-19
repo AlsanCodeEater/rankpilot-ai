@@ -12,7 +12,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405 });
+    return json({ success: false, error: "Method not allowed" }, { status: 200 });
   }
 
   const { session } = await authenticate.admin(request);
@@ -36,7 +36,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       success: false,
       error: usageCheck.error,
       upgradeRequired: usageCheck.upgradeRequired
-    });
+    }, { status: 200 });
   }
 
   const remainingQuota = usageCheck.limit - usageCheck.currentUsage;
@@ -50,7 +50,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
 
   if (products.length === 0) {
-    return json({ error: "No products found. Please sync first." }, { status: 400 });
+    return json({ success: false, error: "No published products found without AI suggestions" }, { status: 200 });
   }
 
   let totalAnalyzed = 0;

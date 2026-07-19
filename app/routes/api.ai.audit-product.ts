@@ -10,7 +10,7 @@ const activeAudits = new Map<string, number>();
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405 });
+    return json({ success: false, error: "Method not allowed" }, { status: 200 });
   }
 
   const { session } = await authenticate.admin(request);
@@ -24,7 +24,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       success: false,
       errorType: "AUDIT_IN_PROGRESS",
       error: "An audit is already running. Please wait for it to finish."
-    }, { status: 429 });
+    }, { status: 200 });
   }
 
   activeAudits.set(session.shop, now);
@@ -35,7 +35,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (!productId) {
     activeAudits.delete(session.shop);
-    return json({ error: "Missing product ID" }, { status: 400 });
+    return json({ success: false, error: "Missing product ID" }, { status: 200 });
   }
 
   const usageCheck = await checkUsageLimit(session.shop, "ai_audit");
@@ -45,7 +45,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       success: false,
       error: usageCheck.error,
       upgradeRequired: usageCheck.upgradeRequired
-    });
+    }, { status: 200 });
   }
 
   const product = await prisma.productSnapshot.findUnique({
@@ -54,7 +54,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (!product || product.shop !== session.shop) {
     activeAudits.delete(session.shop);
-    return json({ error: "Product not found" }, { status: 404 });
+    return json({ success: false, error: "Product not found" }, { status: 200 });
   }
 
   try {
@@ -68,12 +68,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         errorType: result.errorType
       });
 
-      let status = 502;
-      if (result.errorType === "RATE_LIMIT") status = 429;
-      if (result.errorType === "PROVIDER_OVERLOADED") status = 503;
-      if (result.errorType === "AI_TIMEOUT") status = 504;
-      if (result.errorType === "INVALID_JSON") status = 422;
-
       return json(
         {
           success: false,
@@ -81,7 +75,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           errorType: result.errorType,
           retryAfterSeconds: 60
         },
-        { status }
+        { status: 200 }
       );
     }
 
@@ -179,7 +173,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   } catch (error: any) {
     console.error("Audit product error:", error);
-    return json({ error: error.message || "Failed to audit product" }, { status: 500 });
+    return json({ success: false, error: error.message || "Failed to audit product" }, { status: 200 });
   } finally {
     activeAudits.delete(session.shop);
   }

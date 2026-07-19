@@ -8,7 +8,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
     return json(
       { success: false, error: "Method not allowed" },
-      { status: 405 },
+      { status: 200 },
     );
   }
 
@@ -32,7 +32,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!suggestionId) {
       return json(
         { success: false, error: "Missing suggestionId" },
-        { status: 400 },
+        { status: 200 },
       );
     }
 
@@ -61,6 +61,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown error";
-    return json({ success: false, error: message }, { status: 400 });
+    return json({ success: false, error: message }, { status: 200 });
   }
 };

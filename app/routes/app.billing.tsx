@@ -1,4 +1,4 @@
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { useLoaderData, useSubmit, useNavigation, useRouteError } from "@remix-run/react";
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import {
   Page,
@@ -141,6 +141,19 @@ export default function BillingPage() {
           {renderPlanCard("PRO", "Pro")}
         </Layout>
       </BlockStack>
+    </Page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error("Billing route error", error);
+
+  return (
+    <Page title="Something went wrong">
+      <Banner tone="critical">
+        <p>Something went wrong loading this page. Please refresh and try again.</p>
+      </Banner>
     </Page>
   );
 }

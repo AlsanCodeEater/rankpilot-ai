@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher, useNavigate, useSearchParams, useFetchers } from "@remix-run/react";
+import { useLoaderData, useFetcher, useNavigate, useSearchParams, useFetchers, useRouteError } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { Banner } from "@shopify/polaris";
 import {
@@ -258,6 +258,19 @@ export default function Products() {
           </Layout.Section>
         </Layout>
       </BlockStack>
+    </Page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error("Products route error", error);
+
+  return (
+    <Page title="Something went wrong">
+      <Banner tone="critical">
+        <p>Something went wrong loading this page. Please refresh and try again.</p>
+      </Banner>
     </Page>
   );
 }

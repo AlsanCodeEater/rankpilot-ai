@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, useRouteError } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -12,6 +12,7 @@ import {
   Badge,
   Thumbnail,
   InlineStack,
+  Banner,
 } from "@shopify/polaris";
 import { CollectionIcon } from "@shopify/polaris-icons";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -95,6 +96,19 @@ export default function Collections() {
           </Layout.Section>
         </Layout>
       </BlockStack>
+    </Page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error("Collections route error", error);
+
+  return (
+    <Page title="Something went wrong">
+      <Banner tone="critical">
+        <p>Something went wrong loading this page. Please refresh and try again.</p>
+      </Banner>
     </Page>
   );
 }

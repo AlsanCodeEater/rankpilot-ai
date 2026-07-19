@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher } from "@remix-run/react";
+import { useLoaderData, useFetcher, useRouteError } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -177,6 +177,19 @@ export default function Settings() {
           </Layout.AnnotatedSection>
         </Layout>
       </BlockStack>
+    </Page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error("Settings route error", error);
+
+  return (
+    <Page title="Something went wrong">
+      <Banner tone="critical">
+        <p>Something went wrong loading this page. Please refresh and try again.</p>
+      </Banner>
     </Page>
   );
 }

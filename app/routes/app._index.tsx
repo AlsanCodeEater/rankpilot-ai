@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher, useNavigate } from "@remix-run/react";
+import { useLoaderData, useFetcher, useNavigate, useRouteError } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -395,6 +395,19 @@ export default function Dashboard() {
           </Layout.Section>
         </Layout>
       </BlockStack>
+    </Page>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error("Dashboard route error", error);
+
+  return (
+    <Page title="Something went wrong">
+      <Banner tone="critical">
+        <p>Something went wrong loading this page. Please refresh and try again.</p>
+      </Banner>
     </Page>
   );
 }

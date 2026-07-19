@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher, useSearchParams } from "@remix-run/react";
+import { useLoaderData, useFetcher, useSearchParams, useRouteError, useNavigation, useNavigate, useRevalidator } from "@remix-run/react";
+import { useState, useEffect } from "react";
 import {
   Page,
   Layout,
@@ -232,10 +233,16 @@ export default function Suggestions() {
 function SuggestionItem({ suggestion }: { suggestion: any }) {
   const fetcher = useFetcher<any>();
   const revalidator = useRevalidator();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.success) {
-      revalidator.revalidate();
+    if (fetcher.state === "idle" && fetcher.data) {
+      if (fetcher.data.success === false) {
+        setErrorMessage(fetcher.data.error || "Action failed. Please try again.");
+      } else {
+        setErrorMessage(null);
+        revalidator.revalidate();
+      }
     }
   }, [fetcher.state, fetcher.data, revalidator]);
   
@@ -291,6 +298,12 @@ function SuggestionItem({ suggestion }: { suggestion: any }) {
         </InlineStack>
 
         <Divider />
+
+        {errorMessage && (
+          <Banner tone="critical" onDismiss={() => setErrorMessage(null)}>
+            <p>{errorMessage}</p>
+          </Banner>
+        )}
 
         <BlockStack gap="200">
           <BlockStack gap="100">
@@ -391,5 +404,18 @@ function SuggestionItem({ suggestion }: { suggestion: any }) {
         )}
       </BlockStack>
     </Card>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error("Suggestions route error", error);
+
+  return (
+    <Page title="Something went wrong">
+      <Banner tone="critical">
+        <p>Something went wrong loading this page. Please refresh and try again.</p>
+      </Banner>
+    </Page>
   );
 }
