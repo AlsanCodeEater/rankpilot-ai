@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher, useNavigate, useSearchParams } from "@remix-run/react";
+import { useLoaderData, useFetcher, useNavigate, useSearchParams, useFetchers } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { Banner } from "@shopify/polaris";
 import {
