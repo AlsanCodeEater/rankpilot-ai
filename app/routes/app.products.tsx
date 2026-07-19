@@ -41,7 +41,7 @@ function getQualityBadge(score: number | null) {
   return <Badge tone="critical">Poor ({score})</Badge>;
 }
 
-function ProductRow({ product, index, onAuditResult }: { product: any; index: number; onAuditResult: (result: any) => void }) {
+function ProductRow({ product, index, onAuditResult, isAnyAuditing }: { product: any; index: number; onAuditResult: (result: any) => void; isAnyAuditing: boolean }) {
   const auditFetcher = useFetcher<any>();
   const navigate = useNavigate();
 
@@ -91,7 +91,7 @@ function ProductRow({ product, index, onAuditResult }: { product: any; index: nu
       </IndexTable.Cell>
       <IndexTable.Cell>
         <InlineStack gap="200" wrap={false}>
-          <Button onClick={handleAudit} loading={isAuditing} size="micro">
+          <Button onClick={handleAudit} loading={isAuditing} disabled={isAnyAuditing && !isAuditing} size="micro">
             Audit
           </Button>
           <Button onClick={() => navigate(`/app/suggestions?productId=${product.id}`)} size="micro">
@@ -107,6 +107,9 @@ export default function Products() {
   const { products, totalCount, totalPages, page } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get("filter") || "all";
+  
+  const auditFetchers = useFetchers().filter(f => f.formAction === "/api/ai/audit-product");
+  const isAnyAuditing = auditFetchers.some(f => f.state !== "idle");
   
   const handleNextPage = () => {
     setSearchParams(prev => { prev.set("page", String(page + 1)); return prev; });
@@ -190,7 +193,7 @@ export default function Products() {
 
   const rowMarkup = sortedProducts.map(
     (product: any, index: number) => (
-      <ProductRow key={product.id} product={product} index={index} onAuditResult={handleAuditResult} />
+      <ProductRow key={product.id} product={product} index={index} onAuditResult={handleAuditResult} isAnyAuditing={isAnyAuditing} />
     )
   );
 

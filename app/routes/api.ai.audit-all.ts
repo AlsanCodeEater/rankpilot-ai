@@ -6,6 +6,9 @@ import { recalculateProductScore } from "../services/suggestions.server";
 import { canUseFeature } from "../services/plans.server";
 import { checkUsageLimit, incrementUsage } from "../services/usage.server";
 import { checkAndExpireBetaIfNeeded } from "../services/beta.server";
+import { getAIClient } from "../services/ai-provider.server";
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
@@ -52,8 +55,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   let totalAnalyzed = 0;
   let totalSuggestions = 0;
+  const errors: any[] = [];
 
   for (const product of products) {
+    if (totalAnalyzed > 0) {
+      await sleep(1500); // Wait 1.5s between products to prevent provider rate limits
+    }
+
     try {
       // 2. The AI should audit synced Shopify products and return JSON
       const result = await auditProductWithAI(product);

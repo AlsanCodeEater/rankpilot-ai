@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { getAIClient } from "./ai-provider.server";
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Define the expected AI output schema using Zod
 const AiSuggestionSchema = z.object({
   type: z.enum([
@@ -93,65 +95,123 @@ Return ONLY valid JSON matching this exact structure:
 }
 
 export async function auditProductWithAI(product: any): Promise<AiAuditResponse> {
-  const { client, model, provider } = getAIClient();
   const prompt = buildPrompt(product);
+  const maxRetries = 1;
 
-  try {
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert Shopify merchandising copilot. Audit product data and return valid JSON only.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.2,
-      stream: false,
-      response_format: { type: "json_object" },
-    });
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // If it's a retry and we have openrouter configured, we can try falling back.
+    // getAIClient can handle fallback if we pass a provider name, but for now we rely on default env fallback,
+    // or we can pass an explicit override if we modify getAIClient. Let's just use the default client for now
+    // and rely on the provider configured in env, since the user said "If AI_PROVIDER=zai fails... and OPENROUTER_API_KEY exists, try OpenRouter".
+    const useFallback = attempt > 0 && process.env.OPENROUTER_API_KEY ? "openrouter" : undefined;
+    const { client, model, provider } = getAIClient(useFallback);
 
-    const rawResponse = response.choices[0]?.message?.content || "{}";
-    
-    // Clean markdown blocks if present (just in case, though openai + json_object usually returns raw json)
-    let cleanResponse = rawResponse.trim();
-    if (cleanResponse.startsWith("\`\`\`")) {
-      cleanResponse = cleanResponse.replace(/^\`\`\`(?:json|JSON)?\s*/, "").replace(/\s*\`\`\`$/, "");
-    }
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
 
-    const parsedData = JSON.parse(cleanResponse);
-    
-    // Validate with Zod
-    const validatedData = AiAuditResponseSchema.parse(parsedData);
+      const response = await client.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert Shopify merchandising copilot. Audit product data and return valid JSON only.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        stream: false,
+        response_format: { type: "json_object" },
+      }, { signal: controller.signal as any });
 
-    // Safety fallback: if AI found issues but generated 0 suggestions
-    if (validatedData.issues?.length > 0 && (!validatedData.suggestions || validatedData.suggestions.length === 0)) {
+      clearTimeout(timeoutId);
+
+      const rawResponse = response.choices[0]?.message?.content || "{}";
+      
+      // Clean markdown blocks if present
+      let cleanResponse = rawResponse.trim();
+      if (cleanResponse.startsWith("\`\`\`")) {
+        cleanResponse = cleanResponse.replace(/^\`\`\`(?:json|JSON)?\s*/, "").replace(/\s*\`\`\`$/, "");
+      }
+
+      const parsedData = JSON.parse(cleanResponse);
+      const validatedData = AiAuditResponseSchema.parse(parsedData);
+
+      // Safety fallback: if AI found issues but generated 0 suggestions
+      if (validatedData.issues?.length > 0 && (!validatedData.suggestions || validatedData.suggestions.length === 0)) {
+        return {
+          success: false,
+          error: "AI audit completed but no actionable suggestions were generated. Please try again.",
+          errorType: "EMPTY_RESPONSE",
+        };
+      }
+
+      return {
+        success: true,
+        aiScore: validatedData.score,
+        issues: validatedData.issues,
+        suggestions: validatedData.suggestions,
+      };
+
+    } catch (error: any) {
+      const isAbort = error.name === "AbortError";
+      const status = error.status || error.response?.status;
+      
+      console.error(`AI Audit failed (Attempt ${attempt + 1}) using ${provider} (${model}):`, {
+        error: error.message,
+        status,
+        name: error.name
+      });
+
+      if (isAbort) {
+        return {
+          success: false,
+          error: "AI audit timed out. Please try again.",
+          errorType: "AI_TIMEOUT",
+        };
+      }
+
+      if (status === 429 || status === 503 || status === 502) {
+        if (attempt < maxRetries) {
+          console.log(`Retrying AI audit in 2 seconds...`);
+          await sleep(2000);
+          continue;
+        }
+
+        const errorType = status === 429 ? "RATE_LIMIT" : "PROVIDER_OVERLOADED";
+        return {
+          success: false,
+          error: "AI service is busy. Please wait a moment and try again.",
+          errorType,
+        };
+      }
+
+      // If it's a JSON parsing error
+      if (error instanceof SyntaxError || error.name === "ZodError") {
+        return {
+          success: false,
+          error: "AI returned an invalid response format. Please try again.",
+          errorType: "INVALID_JSON",
+        };
+      }
+
       return {
         success: false,
-        error: "AI audit completed but no actionable suggestions were generated. Please try again.",
-        errorType: "EMPTY_RESPONSE",
+        error: error.message || "An unknown network error occurred.",
+        errorType: "NETWORK_ERROR",
       };
     }
-
-    return {
-      success: true,
-      aiScore: validatedData.score,
-      issues: validatedData.issues,
-      suggestions: validatedData.suggestions,
-    };
-
-  } catch (error) {
-    console.error(`AI Audit failed using ${provider} (${model}):`, error);
-    
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "AI audit failed or returned invalid JSON",
-      errorType: "INVALID_JSON",
-    };
   }
+
+  // Fallback return (should not reach here)
+  return {
+    success: false,
+    error: "AI service failed after retries.",
+    errorType: "UNKNOWN"
+  };
 }
 
 const PLACEHOLDER_REGEX = /\[(brand name|brand|product name|your brand|your product|company name)\]|\{\{.*?\}\}|<[^>]+>/gi;

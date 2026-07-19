@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
-export function getAIClient() {
-  const provider = process.env.AI_PROVIDER || "zai";
+export function getAIClient(providerOverride?: string) {
+  const provider = providerOverride || process.env.AI_PROVIDER || "zai";
 
   if (provider === "zai") {
     if (!process.env.ZAI_API_KEY) {

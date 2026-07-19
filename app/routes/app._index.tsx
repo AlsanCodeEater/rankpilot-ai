@@ -189,9 +189,16 @@ export default function Dashboard() {
         {auditFetcher.data && (
           <Banner 
             tone={auditFetcher.data.success ? "success" : "critical"}
-            title={auditFetcher.data.success ? "Audit Complete" : "Audit Failed"}
+            title={auditFetcher.data.success ? "Audit Job Finished" : "Audit Failed"}
           >
-            <p>{auditFetcher.data.message || auditFetcher.data.error}</p>
+            <BlockStack gap="200">
+              <p>{auditFetcher.data.message || auditFetcher.data.error}</p>
+              {auditFetcher.data.errors && auditFetcher.data.errors.length > 0 && (
+                <Text as="p" tone="subdued">
+                  {auditFetcher.data.errors.length} products failed to audit (Rate limit or AI busy).
+                </Text>
+              )}
+            </BlockStack>
           </Banner>
         )}
 
