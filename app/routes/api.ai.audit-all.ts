@@ -58,6 +58,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // 2. The AI should audit synced Shopify products and return JSON
       const result = await auditProductWithAI(product);
 
+      if (!result.success) {
+        console.error("Audit failed", {
+          shop: session.shop,
+          productId: product.id,
+          errorType: result.errorType,
+          error: result.error
+        });
+        errors.push({ productId: product.id, error: result.error, errorType: result.errorType });
+        continue;
+      }
+
+      if (result.suggestions.length === 0) {
+        errors.push({ productId: product.id, error: "AI returned 0 actionable suggestions", errorType: "EMPTY_RESPONSE" });
+        continue;
+      }
+
       await prisma.aiSuggestion.deleteMany({
         where: {
           productSnapshotId: product.id,
@@ -116,16 +132,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         createdSuggestions++;
       }
 
-      const recalcResult = await recalculateProductScore(product.id, result.score);
+      const recalcResult = await recalculateProductScore(product.id, result.aiScore);
       const pendingCount = recalcResult?.activeActionableIssueCount || 0;
-      const finalScore = recalcResult?.nextScore || result.score;
+      const finalScore = recalcResult?.nextScore || result.aiScore;
 
-      console.log({
+      console.log("Audit completed", {
         productId: product.id,
         shop: session.shop,
+        success: result.success,
         aiScore: finalScore,
         issueCount: pendingCount,
-        suggestionsReturned: result.suggestions?.length || 0,
+        suggestionsReturned: result.suggestions.length,
         suggestionsCreated: createdSuggestions
       });
       

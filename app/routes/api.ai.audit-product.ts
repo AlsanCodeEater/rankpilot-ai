@@ -43,6 +43,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const result = await auditProductWithAI(product);
 
+    if (!result.success) {
+      console.error("AI audit failed", {
+        shop: session.shop,
+        productId,
+        error: result.error,
+        errorType: result.errorType
+      });
+
+      return json(
+        {
+          success: false,
+          error: result.error || "AI audit failed. Please try again.",
+          errorType: result.errorType
+        },
+        { status: 502 }
+      );
+    }
+
+    if (result.suggestions.length === 0) {
+      return json(
+        {
+          success: false,
+          error: "AI audit completed but no actionable suggestions were generated. Please try again."
+        },
+        { status: 422 }
+      );
+    }
+
     // Clear old pending suggestions
     await prisma.aiSuggestion.deleteMany({
       where: {
@@ -102,16 +130,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // Accurately count actionable pending suggestions and calculate the score
-    const recalcResult = await recalculateProductScore(product.id, result.score);
+    const recalcResult = await recalculateProductScore(product.id, result.aiScore);
     const pendingCount = recalcResult?.activeActionableIssueCount || 0;
-    const finalScore = recalcResult?.nextScore || result.score;
+    const finalScore = recalcResult?.nextScore || result.aiScore;
 
-    console.log({
+    console.log("Audit completed", {
       productId: product.id,
       shop: session.shop,
+      success: result.success,
       aiScore: finalScore,
       issueCount: pendingCount,
-      suggestionsReturned: result.suggestions?.length || 0,
+      suggestionsReturned: result.suggestions.length,
       suggestionsCreated: createdSuggestions
     });
 
@@ -120,7 +149,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     return json({
       success: true,
-      score: result.score,
+      score: result.aiScore,
       suggestions: result.suggestions,
       message: "Product audited successfully",
     });

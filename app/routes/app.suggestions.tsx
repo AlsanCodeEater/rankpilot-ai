@@ -248,6 +248,20 @@ function SuggestionItem({ suggestion }: { suggestion: any }) {
 
   const isSubmitting = fetcher.state !== "idle";
 
+  const isSystemError = 
+    suggestion.suggestionType === "system_error" ||
+    (suggestion.issue && suggestion.issue.toLowerCase().includes("ai audit failed"));
+
+  const isEmptyNewValueForSeo = 
+    !suggestion.newValue && 
+    (suggestion.suggestionType === "improve_seo_description" || suggestion.suggestionType === "improve_seo_title");
+
+  if (isSystemError || isEmptyNewValueForSeo) {
+    return null;
+  }
+  
+  const isActionable = !["inventory_warning", "search_keyword_gap", "stock_warning", "informational", "system_error"].includes(suggestion.suggestionType) && !!suggestion.newValue;
+
   return (
     <Card>
       <BlockStack gap="300">
@@ -338,13 +352,15 @@ function SuggestionItem({ suggestion }: { suggestion: any }) {
               >
                 Reject
               </Button>
-              <Button
-                onClick={() => handleAction(suggestion.id, "approve")}
-                variant="primary"
-                loading={isSubmitting}
-              >
-                Approve
-              </Button>
+              {isActionable && (
+                <Button
+                  onClick={() => handleAction(suggestion.id, "approve")}
+                  variant="primary"
+                  loading={isSubmitting}
+                >
+                  Approve
+                </Button>
+              )}
             </InlineStack>
           </>
         )}
@@ -360,7 +376,7 @@ function SuggestionItem({ suggestion }: { suggestion: any }) {
               >
                 Reject
               </Button>
-              {!["inventory_warning", "search_keyword_gap", "stock_warning", "informational"].includes(suggestion.suggestionType) && (
+              {isActionable && (
                 <Button
                   onClick={() => handleAction(suggestion.id, "apply")}
                   variant="primary"

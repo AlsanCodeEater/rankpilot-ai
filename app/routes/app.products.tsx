@@ -1,7 +1,8 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, useNavigate, useSearchParams } from "@remix-run/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Banner } from "@shopify/polaris";
 import {
   Page,
   Layout,
@@ -40,9 +41,15 @@ function getQualityBadge(score: number | null) {
   return <Badge tone="critical">Poor ({score})</Badge>;
 }
 
-function ProductRow({ product, index }: { product: any; index: number }) {
-  const auditFetcher = useFetcher();
+function ProductRow({ product, index, onAuditResult }: { product: any; index: number; onAuditResult: (result: any) => void }) {
+  const auditFetcher = useFetcher<any>();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (auditFetcher.state === "idle" && auditFetcher.data) {
+      onAuditResult(auditFetcher.data);
+    }
+  }, [auditFetcher.state, auditFetcher.data]);
 
   const handleAudit = () => {
     auditFetcher.submit(
@@ -170,9 +177,20 @@ export default function Products() {
     return 0;
   });
 
+  const [bannerInfo, setBannerInfo] = useState<{ type: "success" | "critical", message: string } | null>(null);
+
+  const handleAuditResult = (result: any) => {
+    if (result.success) {
+      setBannerInfo({ type: "success", message: "Audit completed successfully." });
+    } else {
+      setBannerInfo({ type: "critical", message: result.error || "AI audit failed. Please try again." });
+    }
+    setTimeout(() => setBannerInfo(null), 8000);
+  };
+
   const rowMarkup = sortedProducts.map(
     (product: any, index: number) => (
-      <ProductRow key={product.id} product={product} index={index} />
+      <ProductRow key={product.id} product={product} index={index} onAuditResult={handleAuditResult} />
     )
   );
 
@@ -180,6 +198,11 @@ export default function Products() {
     <Page fullWidth>
       <TitleBar title="Products" />
       <BlockStack gap="500">
+        {bannerInfo && (
+          <Banner tone={bannerInfo.type} onDismiss={() => setBannerInfo(null)}>
+            <p>{bannerInfo.message}</p>
+          </Banner>
+        )}
         <Layout>
           <Layout.Section>
             <Card padding="0">

@@ -25,7 +25,22 @@ const AiAuditResponseSchema = z.object({
   suggestions: z.array(AiSuggestionSchema),
 });
 
-export type AiAuditResponse = z.infer<typeof AiAuditResponseSchema>;
+export type AiSuggestionInput = z.infer<typeof AiSuggestionSchema>;
+
+export type AuditSuccess = {
+  success: true;
+  aiScore: number;
+  issues: string[];
+  suggestions: AiSuggestionInput[];
+};
+
+export type AuditFailure = {
+  success: false;
+  error: string;
+  errorType: "AI_TIMEOUT" | "INVALID_JSON" | "AI_PROVIDER_ERROR" | "EMPTY_RESPONSE";
+};
+
+export type AiAuditResponse = AuditSuccess | AuditFailure;
 
 // Helper to define the prompt
 function buildPrompt(product: any): string {
@@ -112,34 +127,29 @@ export async function auditProductWithAI(product: any): Promise<AiAuditResponse>
     // Validate with Zod
     const validatedData = AiAuditResponseSchema.parse(parsedData);
 
-    // Safety fallback: if AI found issues but generated 0 suggestions, map issues to basic suggestions
+    // Safety fallback: if AI found issues but generated 0 suggestions
     if (validatedData.issues?.length > 0 && (!validatedData.suggestions || validatedData.suggestions.length === 0)) {
-      validatedData.suggestions = validatedData.issues.map((issue) => ({
-        type: "improve_seo_description", // closest generic fallback category
-        issue: issue,
-        reason: "AI detected an issue but did not provide a specific recommended fix.",
-        oldValue: null,
-        newValue: null,
-        confidenceScore: 0.5,
-      }));
+      return {
+        success: false,
+        error: "AI audit completed but no actionable suggestions were generated. Please try again.",
+        errorType: "EMPTY_RESPONSE",
+      };
     }
 
-    return validatedData;
+    return {
+      success: true,
+      aiScore: validatedData.score,
+      issues: validatedData.issues,
+      suggestions: validatedData.suggestions,
+    };
 
   } catch (error) {
     console.error(`AI Audit failed using ${provider} (${model}):`, error);
     
     return {
-      score: 50,
-      issues: ["AI audit failed or returned invalid JSON"],
-      suggestions: [{
-        type: "improve_seo_description",
-        issue: "AI audit failed or returned invalid JSON",
-        reason: "The AI service encountered an error. Please try auditing this product again.",
-        oldValue: null,
-        newValue: null,
-        confidenceScore: 0,
-      }],
+      success: false,
+      error: error instanceof Error ? error.message : "AI audit failed or returned invalid JSON",
+      errorType: "INVALID_JSON",
     };
   }
 }
