@@ -35,25 +35,20 @@ export default function App() {
           {showForm && (
             <div className={styles.loginCard}>
               <div className={styles.loginHeader}>
-                <h2>Welcome Back</h2>
-                <p>Enter your Shopify store domain to continue.</p>
+                <h2>Ready to scale?</h2>
+                <p>Install RankPilot AI from the Shopify App Store.</p>
               </div>
-              <Form className={styles.form} method="post" action="/auth/login">
-                <div className={styles.inputGroup}>
-                  <label htmlFor="shop">Store Domain</label>
-                  <input 
-                    id="shop"
-                    className={styles.input} 
-                    type="text" 
-                    name="shop" 
-                    placeholder="your-store.myshopify.com" 
-                    required 
-                  />
-                </div>
-                <button className={styles.button} type="submit">
-                  Install / Log in
-                </button>
-              </Form>
+              <div className={styles.form}>
+                <a 
+                  className={styles.button} 
+                  href="https://apps.shopify.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  Install from Shopify App Store
+                </a>
+              </div>
               
               <div className={styles.trustBadges}>
                 <div className={styles.badge}>
