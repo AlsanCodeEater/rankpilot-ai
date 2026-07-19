@@ -16,6 +16,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { getOrCreateShopPlan, PLAN_LIMITS, type PlanName } from "../services/plans.server";
+import { verifyActiveShopifySubscription } from "../services/billing.server";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -23,15 +24,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const billingSuccess = url.searchParams.get("billing") === "success";
   const planChanged = url.searchParams.get("changed") === "1";
+  const errorParam = url.searchParams.get("error");
   const newPlanName = url.searchParams.get("planName") || url.searchParams.get("plan");
 
+  let verificationFailed = false;
+
   if (billingSuccess && newPlanName && newPlanName !== "FREE") {
-    // Optimistically update the plan if coming back from Shopify billing success
-    await prisma.shopPlan.upsert({
-      where: { shop: session.shop },
-      create: { shop: session.shop, planName: newPlanName, billingStatus: "active" },
-      update: { planName: newPlanName, billingStatus: "active" }
-    });
+    // Verify the subscription actually exists and is active before trusting URL
+    const verification = await verifyActiveShopifySubscription(admin, newPlanName);
+    
+    if (verification.active) {
+      await prisma.shopPlan.upsert({
+        where: { shop: session.shop },
+        create: { shop: session.shop, planName: newPlanName, billingStatus: "active" },
+        update: { planName: newPlanName, billingStatus: "active" }
+      });
+    } else {
+      verificationFailed = true;
+    }
   }
 
   const shopPlan = await getOrCreateShopPlan(session.shop);
@@ -39,13 +49,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return json({
     currentPlan: shopPlan.planName as PlanName,
     plans: PLAN_LIMITS,
-    showSuccessBanner: billingSuccess || planChanged,
+    showSuccessBanner: (billingSuccess && !verificationFailed) || planChanged,
+    verificationFailed,
+    cancelFailed: errorParam === "cancel_failed",
     updatedPlanName: newPlanName,
   });
 };
 
 export default function BillingPage() {
-  const { currentPlan, plans, showSuccessBanner } = useLoaderData<typeof loader>();
+  const { currentPlan, plans, showSuccessBanner, verificationFailed, cancelFailed } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   
   const isUpgrading = navigation.state === "submitting";
@@ -143,6 +155,18 @@ export default function BillingPage() {
         {showSuccessBanner && (
           <Banner tone="success" title="Plan updated successfully">
             <p>Your billing plan has been changed to {currentPlan}.</p>
+          </Banner>
+        )}
+
+        {verificationFailed && (
+          <Banner tone="critical" title="Billing Verification Failed">
+            <p>Billing approval was not completed or could not be verified.</p>
+          </Banner>
+        )}
+
+        {cancelFailed && (
+          <Banner tone="critical" title="Downgrade Failed">
+            <p>We could not cancel your active Shopify subscription. Please try again or contact support.</p>
           </Banner>
         )}
 

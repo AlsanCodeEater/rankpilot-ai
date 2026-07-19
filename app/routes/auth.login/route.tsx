@@ -43,24 +43,21 @@ export default function Auth() {
     <PolarisAppProvider i18n={loaderData.polarisTranslations}>
       <Page>
         <Card>
-          <Form method="post">
-            <FormLayout>
-              <Text variant="headingMd" as="h2">
-                Log in
-              </Text>
-              <TextField
-                type="text"
-                name="shop"
-                label="Shop domain"
-                helpText="example.myshopify.com"
-                value={shop}
-                onChange={setShop}
-                autoComplete="on"
-                error={errors.shop}
-              />
-              <Button submit>Log in</Button>
-            </FormLayout>
-          </Form>
+          <FormLayout>
+            <Text variant="headingMd" as="h2">
+              Install RankPilot AI
+            </Text>
+            <Text as="p">
+              Install this app from the Shopify App Store or open it from your Shopify Admin.
+            </Text>
+            <Button
+              url="https://apps.shopify.com"
+              target="_blank"
+              variant="primary"
+            >
+              Go to Shopify App Store
+            </Button>
+          </FormLayout>
         </Card>
       </Page>
     </PolarisAppProvider>

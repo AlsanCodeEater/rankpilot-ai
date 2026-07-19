@@ -1,6 +1,7 @@
 import { json, redirect, type ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { PLAN_LIMITS, type PlanName } from "../services/plans.server";
+import { cancelActiveShopifySubscription } from "../services/billing.server";
 import prisma from "../db.server";
 
 const APP_SUBSCRIPTION_CREATE = `#graphql
@@ -33,6 +34,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (planName === "FREE") {
+    const cancelResult = await cancelActiveShopifySubscription(admin);
+    if (!cancelResult.success) {
+      // Could not cancel active subscription
+      return redirect(`/app/billing?error=cancel_failed`);
+    }
+
     await prisma.shopPlan.upsert({
       where: { shop: session.shop },
       create: { shop: session.shop, planName: "FREE", billingStatus: "free" },
