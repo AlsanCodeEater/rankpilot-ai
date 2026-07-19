@@ -23,15 +23,41 @@ import { authenticate } from "../shopify.server";
 import { getProductSnapshots } from "../services/product-sync.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  console.time("products-loader");
   const { session } = await authenticate.admin(request);
   const url = new URL(request.url);
   const page = parseInt(url.searchParams.get("page") || "1", 10);
   
-  const { products, totalCount, totalPages } = await getProductSnapshots(session.shop, page, 25);
-  
-  console.timeEnd("products-loader");
-  return json({ products, totalCount, totalPages, page, shop: session.shop });
+  try {
+    const { products, totalCount, totalPages } = await getProductSnapshots(session.shop, page, 25);
+    return json({ products, totalCount, totalPages, page, shop: session.shop, error: null, errorType: null });
+  } catch (error: any) {
+    console.error("Products loader failed", {
+      code: error.code,
+      message: error.message
+    });
+
+    if (error.code === "P1001") {
+      return json({
+        products: [],
+        totalCount: 0,
+        totalPages: 0,
+        page,
+        shop: session.shop,
+        error: "Database is temporarily unavailable. Please refresh in a moment.",
+        errorType: "DATABASE_UNAVAILABLE"
+      });
+    }
+
+    return json({
+      products: [],
+      totalCount: 0,
+      totalPages: 0,
+      page,
+      shop: session.shop,
+      error: "Products could not be loaded.",
+      errorType: "PRODUCTS_LOAD_FAILED"
+    });
+  }
 };
 
 function getQualityBadge(score: number | null) {
@@ -41,7 +67,7 @@ function getQualityBadge(score: number | null) {
   return <Badge tone="critical">Poor ({score})</Badge>;
 }
 
-function ProductRow({ product, index, onAuditResult, isAnyAuditing }: { product: any; index: number; onAuditResult: (result: any) => void; isAnyAuditing: boolean }) {
+function ProductRow({ product, index, onAuditResult }: { product: any; index: number; onAuditResult: (result: any) => void }) {
   const auditFetcher = useFetcher<any>();
   const navigate = useNavigate();
 
@@ -91,7 +117,7 @@ function ProductRow({ product, index, onAuditResult, isAnyAuditing }: { product:
       </IndexTable.Cell>
       <IndexTable.Cell>
         <InlineStack gap="200" wrap={false}>
-          <Button onClick={handleAudit} loading={isAuditing} disabled={isAnyAuditing && !isAuditing} size="micro">
+          <Button onClick={handleAudit} loading={isAuditing} size="micro">
             Audit
           </Button>
           <Button onClick={() => navigate(`/app/suggestions?productId=${product.id}`)} size="micro">
@@ -104,12 +130,9 @@ function ProductRow({ product, index, onAuditResult, isAnyAuditing }: { product:
 }
 
 export default function Products() {
-  const { products, totalCount, totalPages, page } = useLoaderData<typeof loader>();
+  const { products, totalCount, totalPages, page, errorType, error } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get("filter") || "all";
-  
-  const auditFetchers = useFetchers().filter(f => f.formAction === "/api/ai/audit-product");
-  const isAnyAuditing = auditFetchers.some(f => f.state !== "idle");
   
   const handleNextPage = () => {
     setSearchParams(prev => { prev.set("page", String(page + 1)); return prev; });
@@ -193,7 +216,7 @@ export default function Products() {
 
   const rowMarkup = sortedProducts.map(
     (product: any, index: number) => (
-      <ProductRow key={product.id} product={product} index={index} onAuditResult={handleAuditResult} isAnyAuditing={isAnyAuditing} />
+      <ProductRow key={product.id} product={product} index={index} onAuditResult={handleAuditResult} />
     )
   );
 
@@ -201,6 +224,16 @@ export default function Products() {
     <Page fullWidth>
       <TitleBar title="Products" />
       <BlockStack gap="500">
+        {errorType === "DATABASE_UNAVAILABLE" && (
+          <Banner tone="warning" title="Database Starting Up">
+            <p>{error}</p>
+          </Banner>
+        )}
+        {errorType && errorType !== "DATABASE_UNAVAILABLE" && (
+          <Banner tone="critical">
+            <p>{error}</p>
+          </Banner>
+        )}
         {bannerInfo && (
           <Banner tone={bannerInfo.type} onDismiss={() => setBannerInfo(null)}>
             <p>{bannerInfo.message}</p>

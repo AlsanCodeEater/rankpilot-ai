@@ -100,14 +100,13 @@ export async function auditProductWithAI(product: any): Promise<AiAuditResponse>
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     // If it's a retry and we have a fallback provider configured, we can try falling back.
-    const useFallback = attempt > 0 && process.env.AI_FALLBACK_PROVIDER ? process.env.AI_FALLBACK_PROVIDER : undefined;
+    const useFallback = attempt > 0 ? (process.env.AI_FALLBACK_PROVIDER || "zai") : undefined;
     const { client, model, provider } = getAIClient(useFallback);
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+    console.log("AI audit provider selected", { provider, model, attempt: attempt + 1 });
 
-      const response = await client.chat.completions.create({
+    try {
+      const aiPromise = client.chat.completions.create({
         model,
         messages: [
           {
@@ -122,9 +121,17 @@ export async function auditProductWithAI(product: any): Promise<AiAuditResponse>
         temperature: 0.2,
         stream: false,
         response_format: { type: "json_object" },
-      }, { signal: controller.signal as any });
+      });
 
-      clearTimeout(timeoutId);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          const err = new Error("AI audit timed out. Please try again.");
+          err.name = "AbortError";
+          reject(err);
+        }, 25000);
+      });
+
+      const response = await Promise.race([aiPromise, timeoutPromise]) as any;
 
       const rawResponse = response.choices[0]?.message?.content || "{}";
       

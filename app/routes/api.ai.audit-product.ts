@@ -17,30 +17,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   
   await checkAndExpireBetaIfNeeded(session.shop);
 
-  const now = Date.now();
-  const lastAudit = activeAudits.get(session.shop);
-  if (lastAudit && now - lastAudit < 30000) {
-    return json({
-      success: false,
-      errorType: "AUDIT_IN_PROGRESS",
-      error: "An audit is already running. Please wait for it to finish."
-    }, { status: 200 });
-  }
-
-  activeAudits.set(session.shop, now);
-
   const formData = await request.formData();
   // Support both keys depending on where it's called from
   const productId = (formData.get("productSnapshotId") || formData.get("productId")) as string;
 
   if (!productId) {
-    activeAudits.delete(session.shop);
     return json({ success: false, error: "Missing product ID" }, { status: 200 });
   }
 
+  const lockKey = `${session.shop}:${productId}`;
+  const now = Date.now();
+  const lastAudit = activeAudits.get(lockKey);
+  if (lastAudit && now - lastAudit < 30000) {
+    return json({
+      success: false,
+      errorType: "AUDIT_IN_PROGRESS",
+      error: "This product is already being audited."
+    }, { status: 200 });
+  }
+
+  activeAudits.set(lockKey, now);
+
   const usageCheck = await checkUsageLimit(session.shop, "ai_audit");
   if (!usageCheck.allowed) {
-    activeAudits.delete(session.shop);
+    activeAudits.delete(lockKey);
     return json({
       success: false,
       error: usageCheck.error,
@@ -53,7 +53,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
 
   if (!product || product.shop !== session.shop) {
-    activeAudits.delete(session.shop);
+    activeAudits.delete(lockKey);
     return json({ success: false, error: "Product not found" }, { status: 200 });
   }
 
@@ -175,6 +175,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.error("Audit product error:", error);
     return json({ success: false, error: error.message || "Failed to audit product" }, { status: 200 });
   } finally {
-    activeAudits.delete(session.shop);
+    activeAudits.delete(lockKey);
   }
 };
