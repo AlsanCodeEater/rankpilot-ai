@@ -20,7 +20,7 @@ import { verifyActiveShopifySubscription } from "../services/billing.server";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const url = new URL(request.url);
   const billingSuccess = url.searchParams.get("billing") === "success";
   const planChanged = url.searchParams.get("changed") === "1";
