@@ -34,16 +34,26 @@ async function cleanupShopAfterUninstall(shop: string) {
 }
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, topic } = await authenticate.webhook(request);
+  let shop: string;
+  let topic: string;
 
-  logger.info(`Received ${topic} webhook for ${shop}`);
+  try {
+    const result = await authenticate.webhook(request);
+    shop = result.shop;
+    topic = result.topic;
+  } catch (error) {
+    console.error("Invalid app/uninstalled webhook", error);
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   console.log("Queued uninstall cleanup", { shop });
+  logger.info(`Received ${topic} webhook for ${shop}`);
 
-  setImmediate(() => {
+  setTimeout(() => {
     cleanupShopAfterUninstall(shop).catch((error) => {
       logger.error("Background uninstall cleanup failed", { shop, error });
     });
-  });
+  }, 0);
 
   return new Response("OK", { status: 200 });
 };

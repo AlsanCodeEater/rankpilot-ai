@@ -33,16 +33,29 @@ async function cleanupShopData(shop: string) {
 }
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, topic } = await authenticate.webhook(request);
-  
-  logger.info(`Received ${topic} webhook for ${shop}`);
-  console.log("Queued shop redact cleanup", { shop });
+  console.time("shop-redact-response");
+  let shop: string;
+  let topic: string;
 
-  setImmediate(() => {
+  try {
+    const result = await authenticate.webhook(request);
+    shop = result.shop;
+    topic = result.topic;
+  } catch (error) {
+    console.error("Invalid shop/redact webhook", error);
+    console.timeEnd("shop-redact-response");
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  console.log("shop/redact received", { shop });
+  logger.info(`Received ${topic} webhook for ${shop}`);
+
+  setTimeout(() => {
     cleanupShopData(shop).catch((error) => {
       logger.error("Background shop redact cleanup failed", { shop, error });
     });
-  });
+  }, 0);
 
+  console.timeEnd("shop-redact-response");
   return new Response("OK", { status: 200 });
 };
