@@ -1,54 +1,58 @@
+import { PublicPageShell } from "../components/PublicPageShell";
 import { Link } from "@remix-run/react";
-import "../styles/public.css";
 
 export const meta = () => [
-  { title: "Support | RankPilot AI Advance" }
+  { title: "RankPilot AI Support" },
+  { name: "description", content: "Get help and support for RankPilot AI Advance." }
 ];
 
 export default function Support() {
   return (
-    <div className="public-page">
-      <div className="public-container">
-        <header className="public-header">
-          <span className="public-brand">RankPilot AI</span>
-          <h1 className="public-heading">Support & Contact</h1>
-          <p className="public-subheading">Need help with RankPilot AI Advance? We're here for you.</p>
-        </header>
-
-        <div className="public-card">
-          <h2>Email Support</h2>
-          <p>
-            For general inquiries, bug reports, and assistance with using the app, please email us at:
-          </p>
-          <p>
-            <a href="mailto:support@alsanlab.cloud" style={{ fontSize: "1.25rem", fontWeight: "600" }}>
-              support@alsanlab.cloud
-            </a>
-          </p>
-          <p>
-            <strong>Response Time:</strong> We aim to respond to all inquiries within 1-2 business days.
-          </p>
-
-          <h2>Emergency Technical Contact</h2>
-          <p>
-            If your store is experiencing critical issues directly caused by the app (e.g., store downtime or corrupted product data), 
-            please include <strong>[URGENT]</strong> in your email subject line. Our on-call technical team will prioritize your request.
-          </p>
-
-          <h2>FAQ & Documentation</h2>
-          <p>
-            You can find guidance on how to audit products, review AI suggestions, and manage your plan directly inside the app's Dashboard 
-            and Settings pages. Alternatively, check out our <Link to="/faq">FAQ page</Link>.
-          </p>
-        </div>
-
-        <nav className="public-nav">
-          <Link to="/pricing">Pricing</Link>
-          <Link to="/faq">FAQ</Link>
-          <Link to="/privacy">Privacy Policy</Link>
-          <Link to="/terms">Terms of Service</Link>
-        </nav>
+    <PublicPageShell>
+      <div className="page-header">
+        <h1 className="page-title">Support & Help Center</h1>
+        <p className="page-subtitle">We're here to help you get the most out of RankPilot AI Advance.</p>
       </div>
-    </div>
+      
+      <div className="content-card">
+        <h2>Contact Support</h2>
+        <p>If you need assistance, the fastest way to reach us is via email. We normally respond within <strong>1–2 business days</strong>.</p>
+        <p>
+          <a href="mailto:support@alsanlab.cloud" style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
+            support@alsanlab.cloud
+          </a>
+        </p>
+      </div>
+
+      <div className="content-card">
+        <h2>What to include when reporting an issue</h2>
+        <p>To help us resolve your issue quickly, please include the following in your email:</p>
+        <ul>
+          <li>Your `myshopify.com` store URL.</li>
+          <li>A detailed description of the issue or error you are seeing.</li>
+          <li>Screenshots or screen recordings (if applicable).</li>
+          <li>The steps to reproduce the issue.</li>
+        </ul>
+      </div>
+
+      <div className="content-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
+        <div>
+          <h3>Billing Help</h3>
+          <p>All billing is securely managed by Shopify. If you have questions about your subscription charges, plan upgrades, or downgrades, you can view your invoice directly in your Shopify Admin under Settings &gt; Billing.</p>
+        </div>
+        <div>
+          <h3>Product Audit Help</h3>
+          <p>If the AI is generating suggestions that don't fit your brand voice, make sure to utilize the manual review step. You are never forced to apply a suggestion. If an audit fails, simply use the 'Retry' button.</p>
+        </div>
+        <div>
+          <h3>App Installation Help</h3>
+          <p>Ensure you are installing RankPilot AI directly from the official Shopify App Store. The app requires permission to read and write your product data to function correctly.</p>
+        </div>
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+        <Link to="/" className="btn-secondary">Return to Home</Link>
+      </div>
+    </PublicPageShell>
   );
 }

@@ -1,62 +1,65 @@
+import { PublicPageShell } from "../components/PublicPageShell";
+import { FAQAccordion } from "../components/FAQAccordion";
 import { Link } from "@remix-run/react";
-import "../styles/public.css";
 
 export const meta = () => [
-  { title: "FAQ | RankPilot AI Advance" }
+  { title: "RankPilot AI FAQ" },
+  { name: "description", content: "Frequently asked questions about RankPilot AI Advance for Shopify." }
+];
+
+const faqItems = [
+  {
+    question: "What does RankPilot AI do?",
+    answer: "RankPilot AI securely analyzes your Shopify product catalog—including titles, descriptions, SEO tags, and inventory data. It uses advanced AI to identify gaps, missing tags, and optimization opportunities, providing actionable suggestions to improve your product merchandising and SEO."
+  },
+  {
+    question: "Does RankPilot AI change my products automatically?",
+    answer: "No. You maintain 100% control over your store. RankPilot generates suggestions that you review. A suggestion is only applied to your live Shopify product if you explicitly click the \"Apply\" button."
+  },
+  {
+    question: "Can I review AI suggestions before applying them?",
+    answer: "Yes, absolutely. The core of RankPilot AI Advance is its Approval Workflow. Every suggestion is presented to you with the current value and the proposed AI value. You can approve, edit, or reject any suggestion before it affects your store."
+  },
+  {
+    question: "Does the app use customer data?",
+    answer: "No. For version 1.0, RankPilot AI Advance strictly collects and uses product-related data (metadata, stock, titles, tags, etc.) necessary for the AI to audit your catalog. We do not require, collect, or process any protected customer data, emails, or order details."
+  },
+  {
+    question: "Which product fields can be audited?",
+    answer: "RankPilot AI audits Product Titles, HTML Descriptions, Product Types, Vendor, Tags, SEO Title (Meta Title), and SEO Description (Meta Description). It also checks inventory levels to flag out-of-stock items that might be hurting your merchandising."
+  },
+  {
+    question: "Can I use it for large catalogs?",
+    answer: "Yes, RankPilot AI is built to handle Shopify catalogs of varying sizes. However, the number of AI audits you can perform per month depends on your pricing plan. Higher tier plans are designed for larger catalogs."
+  },
+  {
+    question: "What happens if an AI audit fails?",
+    answer: "Occasionally, an AI audit might fail due to rate limits or temporary network issues. When this happens, our system automatically logs the error and allows you to easily retry the audit for that specific product from your dashboard without counting against your quota."
+  },
+  {
+    question: "Can I change plans later?",
+    answer: "Yes, you can upgrade or downgrade your plan at any time directly from the Settings page inside your Shopify Admin. All billing is securely handled through Shopify Billing."
+  },
+  {
+    question: "Is it built for Shopify workflows?",
+    answer: "Yes. RankPilot AI Advance is an embedded Shopify app. This means it lives directly inside your Shopify Admin, uses Shopify's official design system (Polaris) for its internal dashboard, and utilizes Shopify's secure OAuth and Billing APIs."
+  }
 ];
 
 export default function FAQ() {
   return (
-    <div className="public-page">
-      <div className="public-container">
-        <header className="public-header">
-          <span className="public-brand">RankPilot AI</span>
-          <h1 className="public-heading">Frequently Asked Questions</h1>
-          <p className="public-subheading">Everything you need to know about how RankPilot AI Advance works.</p>
-        </header>
-
-        <div className="public-card">
-          <h2>How does the AI Merchandising Copilot work?</h2>
-          <p>
-            RankPilot AI Advance securely analyzes your product catalog—including titles, descriptions, SEO tags, and inventory data. 
-            It then uses advanced AI models to identify gaps and opportunities, providing actionable suggestions to improve your product pages for higher conversion and better SEO ranking.
-          </p>
-
-          <h2>Does the app automatically change my products?</h2>
-          <p>
-            No. You maintain 100% control over your store. RankPilot generates suggestions that you can review in the app's dashboard. 
-            A suggestion is only applied to your live Shopify product if you explicitly click the "Apply" button.
-          </p>
-
-          <h2>What data do you collect?</h2>
-          <p>
-            We strictly collect product-related data (metadata, stock, titles, tags, etc.) necessary for the AI to audit your catalog. 
-            <strong>We do not collect, process, or store any customer personal data, emails, or order details.</strong>
-          </p>
-
-          <h2>How many products can I audit?</h2>
-          <p>
-            The number of products you can audit depends on your subscription plan. You can view your current limits and upgrade your plan directly from the Dashboard inside your Shopify Admin.
-          </p>
-          
-          <h2>Can I undo an applied suggestion?</h2>
-          <p>
-            Yes! For every applied suggestion, we store the previous value (e.g., the old product title). You can easily view the history and manually revert any changes if you decide you prefer the original version.
-          </p>
-
-          <h2>What happens if I uninstall the app?</h2>
-          <p>
-            If you uninstall RankPilot AI Advance, all your generated suggestions and shop configurations are permanently deleted from our servers within 48 hours to comply with Shopify's data privacy policies. Any suggestions you already applied to your products will remain on your store, as they are saved directly to Shopify.
-          </p>
-        </div>
-
-        <nav className="public-nav">
-          <Link to="/pricing">Pricing</Link>
-          <Link to="/privacy">Privacy Policy</Link>
-          <Link to="/terms">Terms of Service</Link>
-          <Link to="/support">Support</Link>
-        </nav>
+    <PublicPageShell>
+      <div className="page-header">
+        <h1 className="page-title">Frequently Asked Questions</h1>
+        <p className="page-subtitle">Everything you need to know about how RankPilot AI Advance works.</p>
       </div>
-    </div>
+      
+      <FAQAccordion items={faqItems} />
+
+      <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }}>Still have questions?</p>
+        <Link to="/support" className="btn-secondary">Contact Support</Link>
+      </div>
+    </PublicPageShell>
   );
 }

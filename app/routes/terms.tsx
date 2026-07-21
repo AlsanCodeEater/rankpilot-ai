@@ -1,65 +1,73 @@
-import { Link } from "@remix-run/react";
-import "../styles/public.css";
+import { PublicPageShell } from "../components/PublicPageShell";
 
 export const meta = () => [
-  { title: "Terms of Service | RankPilot AI Advance" }
+  { title: "RankPilot AI Terms of Service" },
+  { name: "description", content: "Terms of Service for RankPilot AI Advance." }
 ];
 
-export default function TermsOfService() {
+export default function Terms() {
   return (
-    <div className="public-page">
-      <div className="public-container">
-        <header className="public-header">
-          <span className="public-brand">RankPilot AI</span>
-          <h1 className="public-heading">Terms of Service</h1>
-          <p className="public-subheading">Last updated: {new Date().toLocaleDateString()}</p>
-        </header>
-
-        <div className="public-card">
-          <h2>1. Acceptance of Terms</h2>
-          <p>
-            By installing and using RankPilot AI Advance ("the App"), you agree to these Terms of Service. If you do not agree, 
-            please uninstall the App immediately.
-          </p>
-          
-          <h2>2. AI Merchandising Suggestions</h2>
-          <p>
-            The App provides AI-generated merchandising suggestions for your Shopify catalog. These are recommendations only. 
-            <strong>You are solely responsible for reviewing and approving all suggestions before applying them to your live store.</strong>
-          </p>
-
-          <h2>3. No Guarantees</h2>
-          <p>
-            We do not guarantee any specific results, including improvements in search engine rankings (SEO), increased traffic, 
-            or higher revenue. The AI suggestions are provided "as-is" without warranty of any kind.
-          </p>
-
-          <h2>4. Merchant Control</h2>
-          <p>
-            You maintain full control over your product data. The App will never automatically alter your product titles, 
-            descriptions, tags, or SEO settings without your explicit initiation or approval via the App interface.
-          </p>
-
-          <h2>5. Limitation of Liability</h2>
-          <p>
-            In no event shall RankPilot AI Advance or its developers be liable for any direct, indirect, incidental, or 
-            consequential damages arising out of your use of the App or reliance on its suggestions.
-          </p>
-          
-          <h2>6. Contact Us</h2>
-          <p>
-            If you have any questions about these Terms, please contact us at: <br/>
-            <a href="mailto:support@alsanlab.cloud">support@alsanlab.cloud</a>
-          </p>
-        </div>
-
-        <nav className="public-nav">
-          <Link to="/pricing">Pricing</Link>
-          <Link to="/faq">FAQ</Link>
-          <Link to="/privacy">Privacy Policy</Link>
-          <Link to="/support">Support</Link>
-        </nav>
+    <PublicPageShell>
+      <div className="page-header">
+        <h1 className="page-title">Terms of Service</h1>
+        <p className="page-subtitle">Last updated: July 2026</p>
       </div>
-    </div>
+      
+      <div className="content-card">
+        <h2>1. Acceptance of Terms</h2>
+        <p>
+          By installing and using the RankPilot AI Advance app ("the App"), you agree to be bound by these Terms of Service. 
+          If you do not agree to these terms, please do not use the App.
+        </p>
+        
+        <h2>2. Use of the App</h2>
+        <p>
+          RankPilot AI Advance provides an AI-powered merchandising auditing tool for Shopify merchants. 
+          You agree to use the App solely for its intended purpose of auditing and optimizing your own Shopify store catalog. 
+          You may not reverse-engineer, exploit, or maliciously interfere with the App's services or APIs.
+        </p>
+
+        <h2>3. Merchant Responsibility and AI Disclaimer</h2>
+        <p>
+          The App utilizes advanced Artificial Intelligence (AI) and Large Language Models (LLMs) to generate suggestions for your product metadata (e.g., titles, descriptions, SEO tags). 
+          While we strive for high quality, <strong>AI-generated content may occasionally be inaccurate, inappropriate, or misaligned with your brand voice.</strong>
+        </p>
+        <p>
+          <strong>You are solely responsible for reviewing and approving all AI suggestions before applying them to your live store.</strong> 
+          RankPilot AI Advance acts as a "Copilot"—a suggestion engine—not an autonomous agent. We do not automatically modify your live store data without your explicit approval via the App interface.
+        </p>
+
+        <h2>4. Billing and Plan Changes</h2>
+        <p>
+          All subscription fees are processed securely through the Shopify Billing API. 
+          You will be billed according to the subscription plan you select. 
+          You may upgrade, downgrade, or cancel your plan at any time through your Shopify Admin settings. 
+          Partial months or unused quotas are handled according to standard Shopify Billing policies.
+        </p>
+
+        <h2>5. Service Availability</h2>
+        <p>
+          We aim to provide a highly reliable service. However, the App relies on third-party services, including Shopify's APIs and external AI providers. 
+          We do not guarantee that the App will be uninterrupted, secure, or error-free at all times.
+        </p>
+
+        <h2>6. Limitation of Liability</h2>
+        <p>
+          To the maximum extent permitted by law, RankPilot AI Advance and its creators (Alsan Lab) shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data, use, goodwill, or other intangible losses, resulting from your use of the App or the application of AI-generated suggestions to your store.
+        </p>
+
+        <h2>7. Changes to Terms</h2>
+        <p>
+          We reserve the right to modify these Terms at any time. We will notify users of significant changes via email or an in-app notification. 
+          Your continued use of the App following any changes indicates your acceptance of the new Terms.
+        </p>
+
+        <h2>8. Contact Information</h2>
+        <p>
+          For any questions regarding these Terms of Service, please contact us at: <br/>
+          <a href="mailto:support@alsanlab.cloud">support@alsanlab.cloud</a>
+        </p>
+      </div>
+    </PublicPageShell>
   );
 }
