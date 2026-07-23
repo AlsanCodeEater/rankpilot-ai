@@ -25,7 +25,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const billingSuccess = url.searchParams.get("billing") === "success";
   const planChanged = url.searchParams.get("changed") === "1";
   const errorParam = url.searchParams.get("error");
+  const billingError = url.searchParams.get("billing_error");
   const newPlanName = url.searchParams.get("planName") || url.searchParams.get("plan");
+
 
   let verificationFailed = false;
 
@@ -45,6 +47,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   const shopPlan = await getOrCreateShopPlan(session.shop);
+
+  const storeHandle = session.shop.replace(".myshopify.com", "");
+  const appHandle = process.env.SHOPIFY_APP_HANDLE;
+  const pricingUrl = appHandle
+    ? `https://admin.shopify.com/store/${storeHandle}/charges/${appHandle}/pricing_plans`
+    : null;
   
   return json({
     currentPlan: shopPlan.planName as PlanName,
@@ -52,12 +60,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     showSuccessBanner: (billingSuccess && !verificationFailed) || planChanged,
     verificationFailed,
     cancelFailed: errorParam === "cancel_failed",
+    billingError,
     updatedPlanName: newPlanName,
+    pricingUrl,
   });
 };
 
 export default function BillingPage() {
-  const { currentPlan, plans, showSuccessBanner, verificationFailed, cancelFailed } = useLoaderData<typeof loader>();
+  const { currentPlan, plans, showSuccessBanner, verificationFailed, cancelFailed, billingError, pricingUrl } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   
   const isUpgrading = navigation.state === "submitting";
@@ -117,19 +127,32 @@ export default function BillingPage() {
             </Box>
 
             <Box>
-              <Form method="post" action="/api/billing/create">
-                <input type="hidden" name="planName" value={name} />
+              {pricingUrl ? (
                 <Button
-                  submit
+                  url={pricingUrl}
+                  target="_top"
                   size="large"
                   variant={isCurrent ? "secondary" : "primary"}
                   disabled={isCurrent || isUpgrading}
-                  loading={isUpgrading && navigation.formData?.get("planName") === name}
                   fullWidth
                 >
                   {isCurrent ? "Active" : name === "FREE" ? "Downgrade to Free" : `Choose ${title}`}
                 </Button>
-              </Form>
+              ) : (
+                <Form method="post" action="/api/billing/create">
+                  <input type="hidden" name="planName" value={name} />
+                  <Button
+                    submit
+                    size="large"
+                    variant={isCurrent ? "secondary" : "primary"}
+                    disabled={isCurrent || isUpgrading}
+                    loading={isUpgrading && navigation.formData?.get("planName") === name}
+                    fullWidth
+                  >
+                    {isCurrent ? "Active" : name === "FREE" ? "Downgrade to Free" : `Choose ${title}`}
+                  </Button>
+                </Form>
+              )}
             </Box>
           </BlockStack>
         </Card>
@@ -167,6 +190,12 @@ export default function BillingPage() {
         {cancelFailed && (
           <Banner tone="critical" title="Downgrade Failed">
             <p>We could not cancel your active Shopify subscription. Please try again or contact support.</p>
+          </Banner>
+        )}
+
+        {billingError && (
+          <Banner tone="critical" title="Plan change could not be started">
+            <p>Please try again.</p>
           </Banner>
         )}
 

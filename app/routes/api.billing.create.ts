@@ -1,95 +1,32 @@
-import { json, redirect, type ActionFunctionArgs } from "@remix-run/node";
+import { redirect, type ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { PLAN_LIMITS, type PlanName } from "../services/plans.server";
-import { cancelActiveShopifySubscription } from "../services/billing.server";
-import prisma from "../db.server";
-
-const APP_SUBSCRIPTION_CREATE = `#graphql
-  mutation AppSubscriptionCreate($name: String!, $returnUrl: URL!, $lineItems: [AppSubscriptionLineItemInput!]!, $test: Boolean) {
-    appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test) {
-      userErrors {
-        field
-        message
-      }
-      appSubscription {
-        id
-        status
-      }
-      confirmationUrl
-    }
-  }
-`;
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405 });
-  }
-
-  const { admin, session } = await authenticate.admin(request);
-  const formData = await request.formData();
-  const planName = formData.get("planName") as PlanName;
-
-  if (!planName || !PLAN_LIMITS[planName]) {
-    return json({ error: "Invalid plan name" }, { status: 400 });
-  }
-
-  if (planName === "FREE") {
-    const cancelResult = await cancelActiveShopifySubscription(admin);
-    if (!cancelResult.success) {
-      // Could not cancel active subscription
-      return redirect(`/app/billing?error=cancel_failed`);
-    }
-
-    await prisma.shopPlan.upsert({
-      where: { shop: session.shop },
-      create: { shop: session.shop, planName: "FREE", billingStatus: "free" },
-      update: { planName: "FREE", billingStatus: "free" },
-    });
-    return redirect(`/app/billing?plan=free&changed=1`);
-  }
-
-  const price = PLAN_LIMITS[planName].monthlyPrice;
-  const returnUrl = `${process.env.SHOPIFY_APP_URL}/app/billing?billing=success&planName=${planName}`;
-
-  const variables = {
-    name: `RankPilot AI ${planName}`,
-    returnUrl,
-    test: true, // Keep true for development
-    lineItems: [
-      {
-        plan: {
-          appRecurringPricingDetails: {
-            price: {
-              amount: price,
-              currencyCode: "USD",
-            },
-            interval: "EVERY_30_DAYS",
-          },
-        },
-      },
-    ],
-  };
-
   try {
-    const response = await admin.graphql(APP_SUBSCRIPTION_CREATE, {
-      variables,
-    });
+    const { session, redirect: shopifyRedirect } = await authenticate.admin(request);
+    const formData = await request.formData();
+    const planName = String(formData.get("planName") || "");
 
-    const result = await response.json();
-    const data = result.data?.appSubscriptionCreate;
-
-    if (data?.userErrors?.length > 0) {
-      console.error("Billing mutation userErrors:", data.userErrors);
-      return json({ error: "Failed to create subscription" }, { status: 400 });
+    if (!planName) {
+      return shopifyRedirect("/app/billing?billing_error=missing_plan");
     }
 
-    if (!data?.confirmationUrl) {
-      return json({ error: "No confirmation URL returned from Shopify" }, { status: 500 });
+    const appHandle = process.env.SHOPIFY_APP_HANDLE;
+    if (!appHandle) {
+      console.error("SHOPIFY_APP_HANDLE missing");
+      return shopifyRedirect("/app/billing?billing_error=missing_app_handle");
     }
 
-    return redirect(data.confirmationUrl);
+    const storeHandle = session.shop.replace(".myshopify.com", "");
+    const pricingUrl = `https://admin.shopify.com/store/${storeHandle}/charges/${appHandle}/pricing_plans`;
+
+    throw shopifyRedirect(pricingUrl, { target: "_top" });
   } catch (error) {
-    console.error("Billing mutation error:", error);
-    return json({ error: "Failed to create subscription due to internal error" }, { status: 500 });
+    if (error instanceof Response) {
+      throw error;
+    }
+    console.error("Billing plan change failed", error);
+    return redirect("/app/billing?billing_error=plan_change_failed");
   }
 };
