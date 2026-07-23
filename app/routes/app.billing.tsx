@@ -16,7 +16,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { getOrCreateShopPlan, PLAN_LIMITS, type PlanName } from "../services/plans.server";
-import { verifyActiveShopifySubscription } from "../services/billing.server";
+import { verifyActiveShopifySubscription, syncShopBillingPlan } from "../services/billing.server";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -28,25 +28,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const billingError = url.searchParams.get("billing_error");
   const newPlanName = url.searchParams.get("planName") || url.searchParams.get("plan");
 
-
   let verificationFailed = false;
+  let shopPlan = await getOrCreateShopPlan(session.shop);
 
   if (billingSuccess && newPlanName && newPlanName !== "FREE") {
-    // Verify the subscription actually exists and is active before trusting URL
-    const verification = await verifyActiveShopifySubscription(admin, newPlanName);
-    
-    if (verification.active) {
-      await prisma.shopPlan.upsert({
-        where: { shop: session.shop },
-        create: { shop: session.shop, planName: newPlanName, billingStatus: "active" },
-        update: { planName: newPlanName, billingStatus: "active" }
-      });
+    const syncedPlan = await syncShopBillingPlan(admin, session.shop);
+    if (syncedPlan.planName === newPlanName || syncedPlan.planName !== "FREE") {
+      shopPlan = syncedPlan;
     } else {
       verificationFailed = true;
     }
   }
-
-  const shopPlan = await getOrCreateShopPlan(session.shop);
 
   const storeHandle = session.shop.replace(".myshopify.com", "");
   const appHandle = process.env.SHOPIFY_APP_HANDLE;
@@ -56,6 +48,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   
   return json({
     currentPlan: shopPlan.planName as PlanName,
+    billingStatus: shopPlan.billingStatus,
+    trialEndsAt: shopPlan.trialEndsAt,
     plans: PLAN_LIMITS,
     showSuccessBanner: (billingSuccess && !verificationFailed) || planChanged,
     verificationFailed,
@@ -67,10 +61,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function BillingPage() {
-  const { currentPlan, plans, showSuccessBanner, verificationFailed, cancelFailed, billingError, pricingUrl } = useLoaderData<typeof loader>();
+  const { currentPlan, billingStatus, trialEndsAt, plans, showSuccessBanner, verificationFailed, cancelFailed, billingError, pricingUrl } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   
   const isUpgrading = navigation.state === "submitting";
+
 
   const renderPlanCard = (name: PlanName, title: string) => {
     const plan = plans[name];
@@ -84,7 +79,11 @@ export default function BillingPage() {
               <Text as="h3" variant="headingLg" fontWeight="bold">
                 {title}
               </Text>
-              {isCurrent && <Badge tone="success">Current Plan</Badge>}
+              {isCurrent && (
+                <Badge tone={billingStatus === "trial" ? "info" : "success"}>
+                  {billingStatus === "trial" ? "In Trial" : "Current Plan"}
+                </Badge>
+              )}
             </InlineStack>
             
             <BlockStack gap="200">
@@ -178,6 +177,12 @@ export default function BillingPage() {
         {showSuccessBanner && (
           <Banner tone="success" title="Plan updated successfully">
             <p>Your billing plan has been changed to {currentPlan}.</p>
+          </Banner>
+        )}
+
+        {billingStatus === "trial" && trialEndsAt && (
+          <Banner tone="info" title="You are currently on a free trial">
+            <p>Your trial for the {currentPlan} plan ends on {new Date(trialEndsAt).toLocaleDateString()}.</p>
           </Banner>
         )}
 

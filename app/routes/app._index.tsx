@@ -28,15 +28,26 @@ import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   console.time("dashboard-loader");
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   
   const { getOrCreateShopPlan, getPlanLimits } = await import("../services/plans.server");
   const { getUsage } = await import("../services/usage.server");
   const { checkAndExpireBetaIfNeeded } = await import("../services/beta.server");
+  const { syncShopBillingPlan } = await import("../services/billing.server");
   
   await checkAndExpireBetaIfNeeded(session.shop);
   
-  const shopPlan = await getOrCreateShopPlan(session.shop);
+  let shopPlan = await getOrCreateShopPlan(session.shop);
+
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  if (
+    shopPlan.planName === "FREE" ||
+    !shopPlan.billingStatus ||
+    shopPlan.updatedAt < tenMinutesAgo
+  ) {
+    shopPlan = await syncShopBillingPlan(admin, session.shop);
+  }
+
   const limits = getPlanLimits(shopPlan.planName);
   
   const aiAuditUsage = await getUsage(session.shop, "ai_audit");
@@ -44,6 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const usageStats = {
     planName: shopPlan.planName,
+    billingStatus: shopPlan.billingStatus,
     productLimit: limits.productLimit,
     aiAuditLimit: limits.aiAuditLimit,
     applyLimit: limits.applyLimit,
@@ -229,8 +241,8 @@ export default function Dashboard() {
           <BlockStack gap="400">
             <InlineStack align="space-between">
               <Text as="h3" variant="headingMd">Plan Usage Overview</Text>
-              <Badge tone={usageStats.planName === "FREE" ? "new" : "success"}>
-                {`${usageStats.planName} PLAN`}
+              <Badge tone={usageStats.planName === "FREE" ? "new" : usageStats.billingStatus === "trial" ? "info" : "success"}>
+                {usageStats.billingStatus === "trial" ? `${usageStats.planName} TRIAL` : `${usageStats.planName} PLAN`}
               </Badge>
             </InlineStack>
             
