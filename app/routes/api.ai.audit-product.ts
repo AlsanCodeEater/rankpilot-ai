@@ -71,9 +71,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json(
         {
           success: false,
-          error: result.error || "AI audit failed. Please try again.",
           errorType: result.errorType,
-          retryAfterSeconds: 60
+          error: result.error,
+          retryAfterSeconds: result.retryAfterSeconds || 30
         },
         { status: 200 }
       );
