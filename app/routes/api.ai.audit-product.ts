@@ -5,6 +5,8 @@ import { auditProductWithAI, cleanPlaceholderText } from "../services/ai-audit.s
 import { recalculateProductScore } from "../services/suggestions.server";
 import { checkUsageLimit, incrementUsage } from "../services/usage.server";
 import { checkAndExpireBetaIfNeeded } from "../services/beta.server";
+import { getOrCreateShopPlan } from "../services/plans.server";
+import { syncShopBillingPlan } from "../services/billing.server";
 
 const activeAudits = new Map<string, number>();
 
@@ -13,7 +15,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ success: false, error: "Method not allowed" }, { status: 200 });
   }
 
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   
   await checkAndExpireBetaIfNeeded(session.shop);
 
@@ -58,7 +60,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
-    const result = await auditProductWithAI(product);
+    let shopPlan = await getOrCreateShopPlan(session.shop);
+    if (shopPlan.planName === "FREE") {
+      shopPlan = await syncShopBillingPlan(admin, session.shop);
+    }
+
+    const result = await auditProductWithAI(product, shopPlan.planName, shopPlan.billingStatus);
 
     if (!result.success) {
       console.error("AI audit failed", {

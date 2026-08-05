@@ -122,6 +122,13 @@ export default function BillingPage() {
                     <Text as="span" tone="subdued">No Analytics</Text>
                   )}
                 </List.Item>
+                <List.Item>
+                  {name === "FREE" ? (
+                    <Text as="span" tone="subdued">Uses standard AI audit model</Text>
+                  ) : (
+                    <Text as="span" tone="success">Uses advanced AI audit model</Text>
+                  )}
+                </List.Item>
               </List>
             </Box>
 

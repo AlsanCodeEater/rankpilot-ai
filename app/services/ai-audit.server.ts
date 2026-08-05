@@ -190,7 +190,7 @@ async function executeAIRequest(client: any, model: string, messages: any[], res
   return Promise.race([aiPromise, timeoutPromise]) as Promise<any>;
 }
 
-export async function auditProductWithAI(product: any): Promise<AiAuditResponse> {
+export async function auditProductWithAI(product: any, planName?: string | null, billingStatus?: string | null): Promise<AiAuditResponse> {
   const prompt = buildPrompt(product);
   
   const providersToTry = [undefined]; // First try default provider (OpenRouter)
@@ -199,7 +199,8 @@ export async function auditProductWithAI(product: any): Promise<AiAuditResponse>
   }
 
   for (const providerOverride of providersToTry) {
-    const { client, model, provider } = getAIClient(providerOverride);
+    const { client, model, provider } = getAIClient(providerOverride, planName, billingStatus);
+
     
     // We get 2 attempts per provider for normal / schema fallback
     for (let attempt = 1; attempt <= 2; attempt++) {

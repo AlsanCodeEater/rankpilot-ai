@@ -3,7 +3,8 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { auditProductWithAI, cleanPlaceholderText } from "../services/ai-audit.server";
 import { recalculateProductScore } from "../services/suggestions.server";
-import { canUseFeature } from "../services/plans.server";
+import { canUseFeature, getOrCreateShopPlan } from "../services/plans.server";
+import { syncShopBillingPlan } from "../services/billing.server";
 import { checkUsageLimit, incrementUsage } from "../services/usage.server";
 import { checkAndExpireBetaIfNeeded } from "../services/beta.server";
 import { getAIClient } from "../services/ai-provider.server";
@@ -15,7 +16,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ success: false, error: "Method not allowed" }, { status: 200 });
   }
 
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   
   await checkAndExpireBetaIfNeeded(session.shop);
 
@@ -53,6 +54,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ success: false, error: "No published products found without AI suggestions" }, { status: 200 });
   }
 
+  let shopPlan = await getOrCreateShopPlan(session.shop);
+  if (shopPlan.planName === "FREE") {
+    shopPlan = await syncShopBillingPlan(admin, session.shop);
+  }
+
   let totalAnalyzed = 0;
   let totalSuggestions = 0;
   const errors: any[] = [];
@@ -64,7 +70,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     try {
       // 2. The AI should audit synced Shopify products and return JSON
-      const result = await auditProductWithAI(product);
+      const result = await auditProductWithAI(product, shopPlan.planName, shopPlan.billingStatus);
 
       if (!result.success) {
         console.error("Audit failed", {

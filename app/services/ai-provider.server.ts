@@ -1,6 +1,48 @@
 import OpenAI from "openai";
 
-export function getAIClient(providerOverride?: string) {
+export function normalizePlanName(planName?: string | null) {
+  return String(planName || "FREE").toUpperCase();
+}
+
+export function isPaidPlan(planName?: string | null, billingStatus?: string | null) {
+  const plan = normalizePlanName(planName);
+  const status = String(billingStatus || "").toLowerCase();
+
+  return (
+    ["STARTER", "GROWTH", "PRO"].includes(plan) &&
+    ["active", "trial", "trialing"].includes(status)
+  );
+}
+
+export function getOpenRouterModelForPlan(planName?: string | null, billingStatus?: string | null) {
+  const plan = normalizePlanName(planName);
+  const status = String(billingStatus || "").toLowerCase();
+
+  // Free or inactive users use free/cheap model
+  if (!["active", "trial", "trialing"].includes(status) && plan !== "BETA") {
+    return process.env.OPENROUTER_FREE_MODEL || "google/gemini-2.5-flash";
+  }
+
+  if (plan === "PRO") {
+    return process.env.OPENROUTER_PRO_MODEL || "anthropic/claude-sonnet-4";
+  }
+
+  if (plan === "GROWTH") {
+    return process.env.OPENROUTER_GROWTH_MODEL || "anthropic/claude-sonnet-4";
+  }
+
+  if (plan === "STARTER") {
+    return process.env.OPENROUTER_STARTER_MODEL || "google/gemini-2.5-pro";
+  }
+  
+  if (plan === "BETA") {
+    return process.env.OPENROUTER_PRO_MODEL || "anthropic/claude-sonnet-4";
+  }
+
+  return process.env.OPENROUTER_FREE_MODEL || "google/gemini-2.5-flash";
+}
+
+export function getAIClient(providerOverride?: string, planName?: string | null, billingStatus?: string | null) {
   const provider = providerOverride || process.env.AI_PROVIDER || "openrouter";
 
   if (provider === "zai") {
@@ -32,7 +74,7 @@ export function getAIClient(providerOverride?: string) {
     });
     return {
       client,
-      model: process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash",
+      model: getOpenRouterModelForPlan(planName, billingStatus),
       provider: "openrouter",
     };
   }
