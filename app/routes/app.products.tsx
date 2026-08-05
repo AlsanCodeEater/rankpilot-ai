@@ -26,10 +26,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const url = new URL(request.url);
   const page = parseInt(url.searchParams.get("page") || "1", 10);
+  const filter = url.searchParams.get("filter") || "all";
+  const sortCol = url.searchParams.get("sortCol");
+  const sortDir = url.searchParams.get("sortDir") as 'ascending' | 'descending' || 'ascending';
+  const sortColumnIndex = sortCol ? parseInt(sortCol, 10) : undefined;
   
   try {
-    const { products, totalCount, totalPages } = await getProductSnapshots(session.shop, page, 25);
-    return json({ products, totalCount, totalPages, page, shop: session.shop, error: null, errorType: null });
+    const { products, totalCount, totalPages } = await getProductSnapshots(session.shop, page, 25, {
+      filter,
+      sortColumnIndex,
+      sortDirection: sortDir
+    });
+    return json({ products, totalCount, totalPages, page, filter, sortColumnIndex, sortDirection: sortDir, shop: session.shop, error: null, errorType: null });
   } catch (error: any) {
     console.error("Products loader failed", {
       code: error.code,
@@ -130,79 +138,31 @@ function ProductRow({ product, index, onAuditResult }: { product: any; index: nu
 }
 
 export default function Products() {
-  const { products, totalCount, totalPages, page, errorType, error } = useLoaderData<typeof loader>();
+  const { products, totalCount, totalPages, page, filter, sortColumnIndex, sortDirection, errorType, error } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const filter = searchParams.get("filter") || "all";
   
   const handleNextPage = () => {
-    setSearchParams(prev => { prev.set("page", String(page + 1)); return prev; });
+    setSearchParams(prev => { prev.set("page", String(page + 1)); return prev; }, { preventScrollReset: true });
   };
   const handlePrevPage = () => {
-    setSearchParams(prev => { prev.set("page", String(page - 1)); return prev; });
-  };
-
-  const [sortColumnIndex, setSortColumnIndex] = useState<number | undefined>(undefined);
-  const [sortDirection, setSortDirection] = useState<'ascending' | 'descending'>('ascending');
-  
-  const setFilter = (newFilter: string) => {
-    setSearchParams(prev => {
-      prev.set("filter", newFilter);
-      return prev;
-    });
+    setSearchParams(prev => { prev.set("page", String(page - 1)); return prev; }, { preventScrollReset: true });
   };
 
   const handleSort = (headingIndex: number, direction: 'ascending' | 'descending') => {
-    setSortColumnIndex(headingIndex);
-    setSortDirection(direction);
+    setSearchParams(prev => {
+      prev.set("sortCol", String(headingIndex));
+      prev.set("sortDir", direction);
+      return prev;
+    }, { preventScrollReset: true });
   };
 
-  const filteredProducts = products.filter((p: any) => {
-    if (filter === "not_audited") return p.aiScore === null;
-    if (filter === "poor_score") return p.aiScore !== null && p.aiScore < 60;
-    if (filter === "has_issues") return p.issueCount > 0;
-    return true; // "all"
-  });
-
-  const sortedProducts = [...filteredProducts].sort((a: any, b: any) => {
-    if (sortColumnIndex === undefined) return 0;
-    
-    let aValue: any = null;
-    let bValue: any = null;
-
-    switch (sortColumnIndex) {
-      case 2: // Status
-        aValue = a.status || "";
-        bValue = b.status || "";
-        break;
-      case 3: // Inventory
-        aValue = a.totalInventory ?? 0;
-        bValue = b.totalInventory ?? 0;
-        break;
-      case 4: // AI Score
-        aValue = a.aiScore ?? -1;
-        bValue = b.aiScore ?? -1;
-        break;
-      case 5: // Issues
-        aValue = a.issueCount ?? 0;
-        bValue = b.issueCount ?? 0;
-        break;
-      case 6: // Last Scanned
-        aValue = a.lastScannedAt ? new Date(a.lastScannedAt).getTime() : 0;
-        bValue = b.lastScannedAt ? new Date(b.lastScannedAt).getTime() : 0;
-        break;
-      default:
-        return 0;
-    }
-
-    if (aValue < bValue) {
-      return sortDirection === 'ascending' ? -1 : 1;
-    }
-    if (aValue > bValue) {
-      return sortDirection === 'ascending' ? 1 : -1;
-    }
-    return 0;
-  });
-
+  const setFilter = (newFilter: string) => {
+    setSearchParams(prev => {
+      prev.set("filter", newFilter);
+      prev.set("page", "1"); // reset to page 1 on filter change
+      return prev;
+    }, { preventScrollReset: true });
+  };
   const [bannerInfo, setBannerInfo] = useState<{ type: "success" | "critical", message: string } | null>(null);
 
   const handleAuditResult = (result: any) => {
@@ -214,7 +174,7 @@ export default function Products() {
     setTimeout(() => setBannerInfo(null), 8000);
   };
 
-  const rowMarkup = sortedProducts.map(
+  const rowMarkup = products.map(
     (product: any, index: number) => (
       <ProductRow key={product.id} product={product} index={index} onAuditResult={handleAuditResult} />
     )
@@ -261,7 +221,7 @@ export default function Products() {
               ) : (
                 <IndexTable
                   resourceName={{ singular: "product", plural: "products" }}
-                  itemCount={sortedProducts.length}
+                  itemCount={products.length}
                   selectable={false}
                   sortable={[false, false, true, true, true, true, true, false]}
                   sortColumnIndex={sortColumnIndex}

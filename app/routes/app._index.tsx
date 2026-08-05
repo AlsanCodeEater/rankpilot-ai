@@ -88,7 +88,7 @@ function StatCard({
   
   const content = (
     <Card>
-      <BlockStack gap="200">
+      <div style={{ minHeight: "84px", display: "flex", flexDirection: "column", gap: "8px" }}>
         <InlineStack align="space-between" blockAlign="center">
           <Text as="h3" variant="headingSm" tone="subdued">
             {title}
@@ -98,13 +98,15 @@ function StatCard({
           </Box>
         </InlineStack>
         {loading ? (
-          <SkeletonDisplayText size="small" />
+          <Box paddingBlockStart="200">
+            <SkeletonDisplayText size="small" />
+          </Box>
         ) : (
           <Text as="p" variant="headingXl">
             {value}
           </Text>
         )}
-      </BlockStack>
+      </div>
     </Card>
   );
 

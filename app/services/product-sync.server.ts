@@ -256,12 +256,39 @@ export async function syncCollections(
   return totalSynced;
 }
 
-export async function getProductSnapshots(shopDomain: string, page = 1, limit = 25) {
+export async function getProductSnapshots(
+  shopDomain: string, 
+  page = 1, 
+  limit = 25,
+  options: { filter?: string, sortColumnIndex?: number, sortDirection?: 'ascending' | 'descending' } = {}
+) {
+  const { filter = 'all', sortColumnIndex, sortDirection = 'ascending' } = options;
+  
+  const where: any = { shop: shopDomain };
+  if (filter === "not_audited") where.aiScore = null;
+  else if (filter === "poor_score") where.aiScore = { lt: 60 };
+  else if (filter === "has_issues") where.issueCount = { gt: 0 };
+  
+  const orderBy: any = {};
+  if (sortColumnIndex !== undefined) {
+    const dir = sortDirection === 'ascending' ? 'asc' : 'desc';
+    switch (sortColumnIndex) {
+      case 2: orderBy.status = dir; break;
+      case 3: orderBy.totalInventory = dir; break;
+      case 4: orderBy.aiScore = dir; break;
+      case 5: orderBy.issueCount = dir; break;
+      case 6: orderBy.lastScannedAt = dir; break;
+      default: orderBy.aiScore = "asc";
+    }
+  } else {
+    orderBy.aiScore = "asc";
+  }
+
   const skip = (page - 1) * limit;
   const [products, totalCount] = await Promise.all([
     prisma.productSnapshot.findMany({
-      where: { shop: shopDomain },
-      orderBy: { aiScore: "asc" },
+      where,
+      orderBy,
       skip,
       take: limit,
       include: {
@@ -270,7 +297,7 @@ export async function getProductSnapshots(shopDomain: string, page = 1, limit = 
         },
       },
     }),
-    prisma.productSnapshot.count({ where: { shop: shopDomain } })
+    prisma.productSnapshot.count({ where })
   ]);
   return { products, totalCount, totalPages: Math.ceil(totalCount / limit) };
 }

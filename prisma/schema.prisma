@@ -76,6 +76,8 @@ model ProductSnapshot {
   @@unique([shop, shopifyProductId])
   @@index([shop])
   @@index([aiScore])
+  @@index([updatedAt])
+  @@index([issueCount])
   @@index([shop, updatedAt])
   @@index([shop, issueCount])
 }
@@ -120,9 +122,11 @@ model AiSuggestion {
   @@index([shop])
   @@index([status])
   @@index([suggestionType])
+  @@index([createdAt])
   @@index([shop, status])
   @@index([shop, suggestionType])
   @@index([shop, productSnapshotId])
+  @@index([shop, status, productSnapshotId, createdAt])
 }
 
 model ShopSettings {
@@ -167,7 +171,9 @@ model UsageRecord {
   @@index([shop])
   @@index([type])
   @@index([periodKey])
+  @@index([createdAt])
   @@index([shop, type])
+  @@index([shop, createdAt])
 }
 
 model StoreEvent {
@@ -184,6 +190,8 @@ model StoreEvent {
   @@index([eventName])
   @@index([productId])
   @@index([eventDate])
+  @@index([createdAt])
+  @@index([shop, createdAt])
 }
 
 model BetaMerchant {
@@ -224,6 +232,8 @@ model ProductAnalyticsDaily {
   @@index([shop])
   @@index([productId])
   @@index([dateKey])
+  @@index([createdAt])
+  @@index([shop, createdAt])
 }
 
 model PixelInstall {
