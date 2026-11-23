@@ -136,6 +136,12 @@ model ShopSettings {
   aiApiKey      String?
   aiModel       String   @default("gpt-4o-mini")
   syncFrequency String   @default("manual") // "manual" | "6h" | "12h" | "24h"
+  // v2-engine: brand voice used by batch audits
+  voiceTone        String  @default("")
+  voiceAudience    String  @default("")
+  voiceKeywords    String  @default("")
+  voiceBannedWords String  @default("")
+  autopilot        Boolean @default(false) // audit new products on products/create
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -245,4 +251,22 @@ model PixelInstall {
   status     String   @default("inactive")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+// v2-engine: one Anthropic Message Batch audit run
+model BatchAuditRun {
+  id               String    @id @default(cuid())
+  shop             String
+  anthropicBatchId String    @default("")
+  status           String    @default("submitted") // submitted | in_progress | completed | failed
+  requested        Int       @default(0)
+  completed        Int       @default(0)
+  failed           Int       @default(0)
+  totalSuggestions Int       @default(0)
+  error            String    @default("")
+  createdAt        DateTime  @default(now())
+  finishedAt       DateTime?
+
+  @@index([shop])
+  @@index([shop, status])
 }
