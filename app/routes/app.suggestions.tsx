@@ -9,6 +9,7 @@ import {
   BlockStack,
   Text,
   Badge,
+  Banner,
   InlineStack,
   Button,
   EmptyState,
@@ -374,6 +375,20 @@ function SuggestionItem({ suggestion }: { suggestion: any }) {
                   Approve
                 </Button>
               )}
+            </InlineStack>
+          </>
+        )}
+
+        {suggestion.status === "applied" && suggestion.oldValue != null && (
+          <>
+            <Divider />
+            <InlineStack gap="200" align="end">
+              <Button
+                onClick={() => handleAction(suggestion.id, "revert")}
+                disabled={isSubmitting}
+              >
+                Revert to original
+              </Button>
             </InlineStack>
           </>
         )}
