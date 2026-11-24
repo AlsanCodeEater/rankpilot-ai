@@ -34,7 +34,7 @@ export async function auditProductWithAnthropic(
         max_tokens: 1800,
         system: buildBatchSystemPrompt(settings),
         tools: [AUDIT_TOOL],
-        tool_choice: { type: "tool", name: AUDIT_TOOL.name },
+        tool_choice: { type: "auto" },
         messages: [{ role: "user", content: buildProductMessage(product) }],
       },
       { timeout: TIMEOUT_MS },

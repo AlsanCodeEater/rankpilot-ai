@@ -33,6 +33,9 @@ const SUGGESTION_TYPES = [
 export const AUDIT_TOOL = {
   name: "save_product_audit",
   description: "Save the audit result for this product.",
+  // Newest models reject forced tool_choice; strict + auto is the supported way
+  // to guarantee schema-valid input (platform.claude.com docs, Sonnet 5.5 migration).
+  strict: true,
   input_schema: {
     type: "object" as const,
     additionalProperties: false,
@@ -86,6 +89,7 @@ export function buildBatchSystemPrompt(voice: VoiceSettings | null): string {
     "3. Every suggested newValue MUST be ready to apply directly to Shopify without human editing.",
     "4. Never invent product facts (materials, dimensions, certifications). Only rework what the source states.",
     "Keep every string under 300 characters. Maximum 8 suggestions.",
+    "Always respond by calling the save_product_audit tool exactly once. Never reply in plain text.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -139,7 +143,7 @@ export async function submitBatchAudit(shop: string, limit: number) {
       max_tokens: MAX_TOKENS,
       system,
       tools: [AUDIT_TOOL],
-      tool_choice: { type: "tool" as const, name: AUDIT_TOOL.name },
+      tool_choice: { type: "auto" as const },
       messages: [{ role: "user" as const, content: buildProductMessage(p) }],
     },
   }));
