@@ -15,7 +15,7 @@ import { cleanPlaceholderText } from "./ai-audit.server";
 import { recalculateProductScore } from "./suggestions.server";
 import { incrementUsage } from "./usage.server";
 
-const MODEL = process.env.ANTHROPIC_BATCH_MODEL || "claude-haiku-4-5";
+const MODEL = process.env.ANTHROPIC_BATCH_MODEL || "claude-haiku-5-5";
 const MAX_TOKENS = 1800;
 const MAX_BATCH_PRODUCTS = parseInt(process.env.BATCH_AUDIT_MAX || "1000", 10);
 
@@ -30,7 +30,7 @@ const SUGGESTION_TYPES = [
   "catalog_cleanup",
 ] as const;
 
-const AUDIT_TOOL = {
+export const AUDIT_TOOL = {
   name: "save_product_audit",
   description: "Save the audit result for this product.",
   input_schema: {
@@ -91,7 +91,7 @@ export function buildBatchSystemPrompt(voice: VoiceSettings | null): string {
     .join("\n");
 }
 
-function buildProductMessage(product: {
+export function buildProductMessage(product: {
   title: string;
   handle: string | null;
   description: string | null;

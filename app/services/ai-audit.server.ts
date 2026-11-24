@@ -22,7 +22,7 @@ const AiSuggestionSchema = z.object({
   confidenceScore: z.number().min(0).max(1),
 });
 
-const AiAuditResponseSchema = z.object({
+export const AiAuditResponseSchema = z.object({
   aiScore: z.number().min(0).max(100),
   issues: z.array(z.string()),
   suggestions: z.array(AiSuggestionSchema),
@@ -191,6 +191,13 @@ async function executeAIRequest(client: any, model: string, messages: any[], res
 }
 
 export async function auditProductWithAI(product: any, planName?: string | null, billingStatus?: string | null): Promise<AiAuditResponse> {
+  // v2-engine: prefer Anthropic's own API whenever a key is configured.
+  // OpenRouter below remains only as a legacy fallback for keyless installs.
+  if (process.env.ANTHROPIC_API_KEY) {
+    const { auditProductWithAnthropic } = await import("./anthropic-audit.server");
+    return auditProductWithAnthropic(product, planName, billingStatus);
+  }
+
   const prompt = buildPrompt(product);
   
   const providersToTry = [undefined]; // First try default provider (OpenRouter)
