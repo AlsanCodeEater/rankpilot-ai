@@ -158,14 +158,14 @@ export default function Settings() {
                   </BlockStack>
                 </Box>
 
-                {pixelStatus !== "active" && (
+                {(
                   <Box paddingBlockStart="200">
                     <Button 
                       onClick={() => pixelFetcher.submit(null, { method: "POST", action: "/api/pixel/activate" })} 
                       loading={pixelFetcher.state !== "idle"} 
                       variant="primary"
                     >
-                      Activate Pixel
+                      {pixelStatus === "active" ? "Reconnect Pixel" : "Activate Pixel"}
                     </Button>
                   </Box>
                 )}
