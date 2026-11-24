@@ -87,27 +87,21 @@ function StatCard({
   const navigate = import.meta.env.SSR ? undefined : useNavigate();
   
   const content = (
-    <Card>
-      <div style={{ minHeight: "84px", display: "flex", flexDirection: "column", gap: "8px" }}>
-        <InlineStack align="space-between" blockAlign="center">
-          <Text as="h3" variant="headingSm" tone="subdued">
-            {title}
-          </Text>
-          <Box>
-            <Icon source={icon} tone={tone || "base"} />
-          </Box>
-        </InlineStack>
-        {loading ? (
-          <Box paddingBlockStart="200">
-            <SkeletonDisplayText size="small" />
-          </Box>
-        ) : (
-          <Text as="p" variant="headingXl">
-            {value}
-          </Text>
-        )}
+    <div className={`rp-card${url ? " rp-card--link" : ""}`} style={{ minHeight: "104px" }}>
+      <div className="rp-stat-head">
+        <span className="rp-stat-title">{title}</span>
+        <span className={`rp-chip rp-chip--${tone || "info"}`}>
+          <Icon source={icon} />
+        </span>
       </div>
-    </Card>
+      {loading ? (
+        <Box paddingBlockStart="100">
+          <SkeletonDisplayText size="small" />
+        </Box>
+      ) : (
+        <span className="rp-stat-value">{value ?? 0}</span>
+      )}
+    </div>
   );
 
   if (url && navigate) {
@@ -149,6 +143,9 @@ export default function Dashboard() {
   const isStatsLoading = !statsFetcher.data;
   const isPixelLoading = !pixelFetcher.data;
   
+  const navigate = import.meta.env.SSR ? undefined : useNavigate();
+  const heroNav = (url: string) => navigate && navigate(url);
+
   const handleSync = () => {
     syncFetcher.submit(null, { method: "POST", action: "/api/sync-products" });
   };
@@ -216,30 +213,37 @@ export default function Dashboard() {
           </Banner>
         )}
 
-        {/* Action Bar */}
-        <Card>
-          <InlineStack align="space-between" blockAlign="center">
-            <BlockStack gap="100">
-              <Text as="h2" variant="headingMd">Store Overview</Text>
-              <Text as="p" variant="bodyMd" tone="subdued">
-                Manage your product catalog and run AI optimizations.
-              </Text>
-            </BlockStack>
-            <InlineStack gap="300">
-              <Button onClick={handleSync} loading={isSyncing}>
-                Sync Products
-              </Button>
-              <Button onClick={handleAudit} loading={isAuditing} variant="primary">
-                Run AI Audit
-              </Button>
-              <Button url="/app/products">View Products</Button>
-              <Button url="/app/suggestions">View Suggestions</Button>
-            </InlineStack>
-          </InlineStack>
-        </Card>
+        {/* Hero */}
+        <div className="rp-hero">
+          <div className="rp-hero-glow" aria-hidden="true"></div>
+          <div className="rp-hero-inner">
+            <div>
+              <p className="rp-hero-kicker">RankPilot AI</p>
+              <h2 className="rp-hero-title">Your catalog, audit-ready</h2>
+              <p className="rp-hero-sub">
+                Sync products, audit them with AI, and publish better titles,
+                descriptions and SEO — with one-click rollback.
+              </p>
+            </div>
+            <div className="rp-hero-actions">
+              <button className="rp-btn rp-btn-light" onClick={handleAudit} disabled={isAuditing}>
+                {isAuditing ? "Auditing…" : "Run AI Audit"}
+              </button>
+              <button className="rp-btn rp-btn-ghost" onClick={handleSync} disabled={isSyncing}>
+                {isSyncing ? "Syncing…" : "Sync Products"}
+              </button>
+              <button className="rp-btn rp-btn-ghost" onClick={() => heroNav("/app/batch-audit")}>
+                Batch AI
+              </button>
+              <button className="rp-btn rp-btn-ghost" onClick={() => heroNav("/app/suggestions")}>
+                Suggestions
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Usage Overview */}
-        <Card>
+        <div className="rp-card">
           <BlockStack gap="400">
             <InlineStack align="space-between">
               <Text as="h3" variant="headingMd">Plan Usage Overview</Text>
@@ -248,32 +252,27 @@ export default function Dashboard() {
               </Badge>
             </InlineStack>
             
-            <Layout>
-              <Layout.Section variant="oneThird">
-                <BlockStack gap="100">
-                  <Text as="p" variant="bodyMd" tone="subdued">Products Limit</Text>
-                  <Text as="p" variant="headingLg">
-                    {usageStats.productUsage} / {usageStats.productLimit}
-                  </Text>
-                </BlockStack>
-              </Layout.Section>
-              <Layout.Section variant="oneThird">
-                <BlockStack gap="100">
-                  <Text as="p" variant="bodyMd" tone="subdued">AI Audits (This Month)</Text>
-                  <Text as="p" variant="headingLg">
-                    {usageStats.aiAuditUsage} / {usageStats.aiAuditLimit}
-                  </Text>
-                </BlockStack>
-              </Layout.Section>
-              <Layout.Section variant="oneThird">
-                <BlockStack gap="100">
-                  <Text as="p" variant="bodyMd" tone="subdued">Applied Suggestions (This Month)</Text>
-                  <Text as="p" variant="headingLg">
-                    {usageStats.suggestionApplyUsage} / {usageStats.applyLimit}
-                  </Text>
-                </BlockStack>
-              </Layout.Section>
-            </Layout>
+            <div className="rp-meters">
+              {[
+                { label: "Products", used: usageStats.productUsage, limit: usageStats.productLimit },
+                { label: "AI audits this month", used: usageStats.aiAuditUsage, limit: usageStats.aiAuditLimit },
+                { label: "Applied suggestions this month", used: usageStats.suggestionApplyUsage, limit: usageStats.applyLimit },
+              ].map((m) => {
+                const pct = m.limit > 0 ? Math.min(100, Math.round((m.used / m.limit) * 100)) : 0;
+                const fillClass = pct >= 95 ? "rp-meter--over" : pct >= 80 ? "rp-meter--warn" : "";
+                return (
+                  <div key={m.label}>
+                    <div className="rp-meter-label">
+                      <span>{m.label}</span>
+                      <b>{m.used} / {m.limit}</b>
+                    </div>
+                    <div className="rp-meter">
+                      <i className={fillClass} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
             <Box paddingBlockStart="200">
               <Button url="/app/billing" variant="primary">
@@ -281,7 +280,7 @@ export default function Dashboard() {
               </Button>
             </Box>
           </BlockStack>
-        </Card>
+        </div>
 
         {/* Stats Grid */}
         <Layout>

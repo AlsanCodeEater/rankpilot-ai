@@ -1,0 +1,214 @@
+/* RankPilot visual layer — depth on top of Polaris, scoped to .rp- classes */
+
+:root {
+  --rp-ink: #1a1d3d;
+  --rp-ink-soft: #6b7190;
+  --rp-indigo: #6e6ef7;
+  --rp-violet: #9f7cf8;
+  --rp-navy-1: #1b2150;
+  --rp-navy-2: #32317a;
+  --rp-navy-3: #4f46a5;
+  --rp-mint: #27c593;
+  --rp-amber: #f5b83d;
+  --rp-rose: #ef6477;
+}
+
+/* ---------- Hero ---------- */
+.rp-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 28px;
+  background: linear-gradient(135deg, var(--rp-navy-1) 0%, var(--rp-navy-2) 55%, var(--rp-navy-3) 100%);
+  box-shadow:
+    0 20px 40px -18px rgba(27, 33, 80, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.rp-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(420px 220px at 85% -20%, rgba(159, 124, 248, 0.45), transparent 65%),
+    radial-gradient(360px 200px at -5% 110%, rgba(39, 197, 147, 0.25), transparent 60%);
+}
+.rp-hero-inner {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.rp-hero-kicker {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.65);
+}
+.rp-hero-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: #fff;
+}
+.rp-hero-sub {
+  margin: 8px 0 0;
+  max-width: 44ch;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.72);
+}
+.rp-hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Buttons (hero only) ---------- */
+.rp-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font: 600 13px/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.rp-btn:disabled { opacity: 0.65; cursor: default; }
+.rp-btn-light {
+  background: #fff;
+  color: #2a2f6b;
+  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(27, 33, 80, 0.12);
+}
+.rp-btn-ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+.rp-btn:not(:disabled):hover { transform: translateY(-1px); }
+.rp-btn-light:not(:disabled):hover { box-shadow: 0 12px 22px -8px rgba(0, 0, 0, 0.55); }
+.rp-btn-ghost:not(:disabled):hover { background: rgba(255, 255, 255, 0.18); }
+.rp-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* ---------- Cards ---------- */
+.rp-card {
+  position: relative;
+  height: 100%;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfe 100%);
+  border: 1px solid rgba(29, 33, 70, 0.07);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow:
+    0 1px 2px rgba(23, 26, 60, 0.05),
+    0 12px 26px -16px rgba(23, 26, 60, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.rp-card--link:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 2px 4px rgba(23, 26, 60, 0.06),
+    0 20px 34px -16px rgba(23, 26, 60, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.rp-stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.rp-stat-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--rp-ink-soft);
+}
+.rp-stat-value {
+  display: block;
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--rp-ink);
+}
+
+/* Icon chips — soft gradient squares that give each card its color */
+.rp-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 3px 8px -3px rgba(23, 26, 60, 0.25);
+  flex: 0 0 auto;
+}
+.rp-chip .Polaris-Icon { margin: 0; }
+.rp-chip--info     { background: linear-gradient(145deg, #eceeff, #dcdfff); }
+.rp-chip--info svg     { fill: #5b5bd6; }
+.rp-chip--success  { background: linear-gradient(145deg, #e2f8ef, #c9f0e0); }
+.rp-chip--success svg  { fill: #177b58; }
+.rp-chip--warning  { background: linear-gradient(145deg, #fdf3dd, #fae5b8); }
+.rp-chip--warning svg  { fill: #946300; }
+.rp-chip--critical { background: linear-gradient(145deg, #fde9ec, #fad2d9); }
+.rp-chip--critical svg { fill: #c23a4b; }
+
+/* ---------- Usage meters ---------- */
+.rp-meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+.rp-meter-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  color: var(--rp-ink-soft);
+}
+.rp-meter-label b {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--rp-ink);
+  font-variant-numeric: tabular-nums;
+}
+.rp-meter {
+  height: 8px;
+  border-radius: 6px;
+  background: #edeff7;
+  box-shadow: inset 0 1px 2px rgba(23, 26, 60, 0.14);
+  overflow: hidden;
+}
+.rp-meter i {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--rp-indigo), var(--rp-violet));
+  box-shadow: 0 0 8px rgba(110, 110, 247, 0.55);
+  transition: width 0.4s ease;
+}
+.rp-meter i.rp-meter--warn {
+  background: linear-gradient(90deg, #f0a93c, #f5c04d);
+  box-shadow: 0 0 8px rgba(245, 184, 61, 0.55);
+}
+.rp-meter i.rp-meter--over {
+  background: linear-gradient(90deg, #e4556a, #f08093);
+  box-shadow: 0 0 8px rgba(239, 100, 119, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-btn, .rp-card, .rp-meter i { transition: none; }
+  .rp-card--link:hover, .rp-btn:not(:disabled):hover { transform: none; }
+}
+@media (max-width: 640px) {
+  .rp-hero { padding: 20px; }
+  .rp-hero-actions { width: 100%; }
+}

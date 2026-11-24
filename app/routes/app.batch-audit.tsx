@@ -6,7 +6,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
 import {
-  Badge, Banner, BlockStack, Button, Card, Checkbox, InlineStack, Layout, Page, Text, TextField,
+  Badge, Banner, BlockStack, Button, Checkbox, InlineStack, Layout, Page, Text, TextField,
 } from "@shopify/polaris";
 import { useState } from "react";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -92,7 +92,7 @@ export default function BatchAudit() {
               <Banner tone="success">{batchFetcher.data.message}</Banner>
             )}
 
-            <Card>
+            <div className="rp-card">
               <BlockStack gap="300">
                 <Text as="h2" variant="headingMd">Whole-catalog audit</Text>
                 <Text as="p" tone="subdued">
@@ -116,9 +116,9 @@ export default function BatchAudit() {
                   </Button>
                 </InlineStack>
               </BlockStack>
-            </Card>
+            </div>
 
-            <Card>
+            <div className="rp-card">
               <voiceFetcher.Form method="post">
                 <BlockStack gap="300">
                   <Text as="h2" variant="headingMd">Brand voice</Text>
@@ -147,7 +147,7 @@ export default function BatchAudit() {
                   </InlineStack>
                 </BlockStack>
               </voiceFetcher.Form>
-            </Card>
+            </div>
           </BlockStack>
         </Layout.Section>
       </Layout>
