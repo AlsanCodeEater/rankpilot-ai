@@ -7,7 +7,7 @@ RUN apk add --no-cache openssl libc6-compat python3 make g++
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --include=dev
+RUN npm ci --include=dev --loglevel=notice || (echo '--- npm debug log ---' && tail -n 150 /root/.npm/_logs/*.log && exit 1)
 RUN npx prisma generate
 
 COPY . .
